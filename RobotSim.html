@@ -221,7 +221,7 @@
         // Image for the background
         const backgroundImage = new Image();
         backgroundImage.crossOrigin = "anonymous";
-        backgroundImage.src = "https://github.com/plasticarm/fllrobotsim/blob/main/MapDiagram.png?raw=true";
+        backgroundImage.src = "https://raw.githubusercontent.com/plasticarm/fllrobotsim/main/MapDiagram.png";
         let isImageLoaded = false;
 
         // Table and Canvas Dimensions
@@ -450,6 +450,7 @@
                     if (instruction.type === 'waypoint') {
                         const deltaX = instruction.x - current_x;
                         const deltaY = instruction.y - current_y;
+                        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
                         const targetAngleRad = Math.atan2(deltaY, deltaX);
                         current_angle_rad = targetAngleRad;
                         next_x = instruction.x;
@@ -514,7 +515,7 @@ import time
 async def move(distance_cm, speed):
     """Asynchronously moves the robot forward by the specified distance in cm at a given speed."""
     print(f"Moving forward by {distance_cm:.2f} cm at speed {speed}.")
-    await asyncio.sleep(distance_cm / speed)
+    await asyncio.sleep(abs(distance_cm) / speed)
     
 async def rotate(angle_deg, speed):
     """Asynchronously rotates the robot by a specific angle in degrees (positive for left, negative for right) at a given speed."""
@@ -634,18 +635,19 @@ if __name__ == "__main__":
                     currentInstructionIndex++;
                 }
             } else if (instruction.type === 'move') {
-                const distanceLeft = instruction.distance;
+                const remainingDistance = instruction.distance;
                 const moveStep = robot.speed / (canvas.width / (TABLE_WIDTH_MM / 10));
-                if (distanceLeft > moveStep) {
-                    robot.x += Math.sin(robot.angle) * moveStep;
-                    robot.y += Math.cos(robot.angle) * moveStep;
-                    instruction.distance -= moveStep;
+                
+                if (Math.abs(remainingDistance) > moveStep) {
+                    const moveDirection = Math.sign(remainingDistance);
+                    robot.x += Math.sin(robot.angle) * moveStep * moveDirection;
+                    robot.y += Math.cos(robot.angle) * moveStep * moveDirection;
+                    instruction.distance -= moveStep * moveDirection;
                 } else {
-                    robot.x += Math.sin(robot.angle) * distanceLeft;
-                    robot.y += Math.cos(robot.angle) * distanceLeft;
+                    robot.x += Math.sin(robot.angle) * remainingDistance;
+                    robot.y += Math.cos(robot.angle) * remainingDistance;
                     currentInstructionIndex++;
                 }
-
             } else if (instruction.type === 'rotate') {
                 const angleLeft = instruction.angle;
                 const angleStep = 2; // degrees per frame
@@ -952,4 +954,3 @@ if __name__ == "__main__":
     </script>
 </body>
 </html>
-
