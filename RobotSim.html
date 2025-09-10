@@ -566,6 +566,40 @@
                     ctx.fillText(`${distance.toFixed(1)} cm`, midX, midY - 10);
                 }
             }
+
+            // Draw angle arcs and text for all angles
+            if (measurePoints.length >= 3) {
+                for (let i = 0; i < measurePoints.length - 2; i++) {
+                    const p1 = toCanvasCoords(measurePoints[i].x, measurePoints[i].y);
+                    const p2 = toCanvasCoords(measurePoints[i+1].x, measurePoints[i+1].y);
+                    const p3 = toCanvasCoords(measurePoints[i+2].x, measurePoints[i+2].y);
+                    
+                    const v1 = { x: p1.x - p2.x, y: p1.y - p2.y };
+                    const v2 = { x: p3.x - p2.x, y: p3.y - p2.y };
+                    
+                    const angle1 = Math.atan2(v1.y, v1.x);
+                    const angle2 = Math.atan2(v2.y, v2.x);
+                    
+                    let angleDiff = angle2 - angle1;
+                    
+                    // Normalize to [-pi, pi]
+                    while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                    while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+                    ctx.strokeStyle = '#facc15';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(p2.x, p2.y, 20, angle1, angle2);
+                    ctx.stroke();
+
+                    const angleDeg = Math.abs(angleDiff) * 180 / Math.PI;
+                    const angleTextPos = {
+                        x: p2.x + 20 * Math.cos((angle1 + angle2) / 2),
+                        y: p2.y + 20 * Math.sin((angle1 + angle2) / 2)
+                    };
+                    ctx.fillText(`${angleDeg.toFixed(1)}°`, angleTextPos.x, angleTextPos.y);
+                }
+            }
         }
 
         /**
