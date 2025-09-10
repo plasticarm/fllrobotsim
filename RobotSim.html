@@ -178,32 +178,44 @@
             <!-- Simulation Canvas and Output -->
             <div class="flex-grow flex-1 w-full lg:w-[80%] flex flex-col justify-start items-start gap-4">
                 <canvas id="robotCanvas" style="width: 100%; height: auto;"></canvas>
-                <div class="w-full flex flex-col items-center gap-4">
-                    <button id="startSimulationBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md shadow-lg transition duration-300 transform hover:scale-105 w-full">
+                <div class="w-full flex justify-between items-center gap-4">
+                    <button id="startSimulationBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md shadow-lg transition duration-300 transform hover:scale-105 w-[20%]">
                         Start Simulation
                     </button>
-                    <!-- Python Function Name Input Fields -->
-                    <div class="w-full p-6 bg-gray-800 rounded-lg shadow-sm">
-                        <h2 class="text-xl font-semibold mb-4 text-gray-200">Python Function Names</h2>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label for="moveFunctionName" class="block text-sm font-medium text-gray-200">Move Function Name</label>
-                                <input type="text" id="moveFunctionName" value="move" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
-                            </div>
-                            <div>
-                                <label for="rotateFunctionName" class="block text-sm font-medium text-gray-200">Rotate Function Name</label>
-                                <input type="text" id="rotateFunctionName" value="rotate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
-                            </div>
+                    <div id="toolbar" class="w-[80%] flex justify-start items-center gap-4 p-4 rounded-lg bg-gray-800 shadow-sm">
+                        <button id="measureBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                            Measure
+                        </button>
+                        <!-- Other tools would go here -->
+                    </div>
+                </div>
+                
+                <!-- Python Function Name Input Fields -->
+                <div class="w-full p-6 bg-gray-800 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Python Function Names</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="moveFunctionName" class="block text-sm font-medium text-gray-200">Move Function Name</label>
+                            <input type="text" id="moveFunctionName" value="move" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                        </div>
+                        <div>
+                            <label for="rotateFunctionName" class="block text-sm font-medium text-gray-200">Rotate Function Name</label>
+                            <input type="text" id="rotateFunctionName" value="rotate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                     </div>
-                    <div class="w-full p-6 bg-gray-800 rounded-lg shadow-sm">
-                        <h2 class="text-xl font-semibold mb-4 text-gray-200">Generated Python Code</h2>
-                        <div id="codeOutput" class="code-output p-4">
-                            Your generated code will appear here.
-                        </div>
-                        <button id="copyCodeBtn" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
-                            Copy Code
-                        </button>
+                </div>
+                <div class="w-full p-6 bg-gray-800 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Generated Python Code</h2>
+                    <div id="codeOutput" class="code-output p-4">
+                        Your generated code will appear here.
+                    </div>
+                    <div class="flex flex-col md:flex-row gap-4 mt-4">
+                      <button id="copyCodeBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                          Copy Code
+                      </button>
+                      <button id="downloadCodeBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                          Download Python File
+                      </button>
                     </div>
                 </div>
             </div>
@@ -232,9 +244,11 @@
         const instructionList = document.getElementById('instructionList');
         const codeOutput = document.getElementById('codeOutput');
         const copyCodeBtn = document.getElementById('copyCodeBtn');
+        const downloadCodeBtn = document.getElementById('downloadCodeBtn');
         const pathColorInput = document.getElementById('pathColor');
         const moveFunctionNameInput = document.getElementById('moveFunctionName');
         const rotateFunctionNameInput = document.getElementById('rotateFunctionName');
+        const measureBtn = document.getElementById('measureBtn');
 
         // Image for the background
         const backgroundImage = new Image();
@@ -264,7 +278,13 @@
         let dragSrcEl = null;
 
         // Drag and drop state for the robot
-        let isDragging = false;
+        let isDraggingRobot = false;
+        let isDraggingWaypoint = false;
+        let draggedWaypointIndex = -1;
+        let isMeasuring = false;
+        let measurePoints = [];
+        let isDraggingMeasurePoint = false;
+        let draggedMeasurePointIndex = -1;
 
         /**
          * Calculates the correct canvas dimensions to maintain aspect ratio within its parent container.
@@ -505,12 +525,57 @@
         }
 
         /**
+         * Draws the measuring points and the distance between them.
+         */
+        function drawMeasurePoints() {
+            if (measurePoints.length === 0) return;
+
+            // Draw points
+            measurePoints.forEach(point => {
+                const pos = toCanvasCoords(point.x, point.y);
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 5, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+
+            // Draw lines and distances
+            if (measurePoints.length > 1) {
+                ctx.strokeStyle = '#facc15';
+                ctx.lineWidth = 2;
+                ctx.font = '12px Inter';
+                ctx.fillStyle = '#facc15';
+                ctx.textAlign = 'center';
+                
+                for (let i = 0; i < measurePoints.length - 1; i++) {
+                    const start = toCanvasCoords(measurePoints[i].x, measurePoints[i].y);
+                    const end = toCanvasCoords(measurePoints[i+1].x, measurePoints[i+1].y);
+                    
+                    // Draw line
+                    ctx.beginPath();
+                    ctx.moveTo(start.x, start.y);
+                    ctx.lineTo(end.x, end.y);
+                    ctx.stroke();
+
+                    // Calculate and draw distance text
+                    const dx = measurePoints[i+1].x - measurePoints[i].x;
+                    const dy = measurePoints[i+1].y - measurePoints[i].y;
+                    const distance = Math.sqrt(dx*dx + dy*dy);
+                    const midX = (start.x + end.x) / 2;
+                    const midY = (start.y + end.y) / 2;
+                    ctx.fillText(`${distance.toFixed(1)} cm`, midX, midY - 10);
+                }
+            }
+        }
+
+        /**
          * Main drawing function.
          */
         function draw() {
             drawTable();
             drawPathHistory();
             drawInstructions();
+            drawMeasurePoints();
             drawRobot();
         }
 
@@ -938,6 +1003,24 @@ if __name__ == "__main__":
         }
         
         /**
+         * Downloads the generated Python code as a .py file.
+         */
+        function handleDownloadCode() {
+            const codeText = codeOutput.textContent;
+            const missionName = missionNameInput.value.replace(/[^a-zA-Z0-9]/g, '_') || 'robot_mission';
+            const filename = `${missionName}.py`;
+            const blob = new Blob([codeText], { type: 'text/x-python' });
+            
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        }
+
+        /**
          * Checks if a point is within the robot's bounding box.
          * @param {number} x - The x coordinate of the point.
          * @param {number} y - The y coordinate of the point.
@@ -948,7 +1031,6 @@ if __name__ == "__main__":
             const w = cmToPixels(parseFloat(robotWidthInput.value));
             const h = cmToPixels(parseFloat(robotHeightInput.value));
 
-            // Create a temporary canvas and path to check for mouse intersection
             const tempCtx = document.createElement('canvas').getContext('2d');
             tempCtx.save();
             tempCtx.translate(robotCanvasPos.x, robotCanvasPos.y);
@@ -959,38 +1041,103 @@ if __name__ == "__main__":
             return tempCtx.isPointInPath(x, y);
         }
 
-        // Event listeners for dragging the robot
+        /**
+         * Checks if a point is within a waypoint's bounding box.
+         * @param {number} x - The x coordinate of the point.
+         * @param {number} y - The y coordinate of the point.
+         * @returns {number} The index of the waypoint, or -1 if no waypoint is found.
+         */
+        function isPointInWaypoint(x, y) {
+            for (let i = 0; i < instructions.length; i++) {
+                const instruction = instructions[i];
+                if (instruction.type === 'waypoint') {
+                    const waypointPos = toCanvasCoords(instruction.x, instruction.y);
+                    const dx = x - waypointPos.x;
+                    const dy = y - waypointPos.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance <= 5) { // 5 pixel radius
+                        return i;
+                    }
+                }
+            }
+            return -1;
+        }
+
+        /**
+         * Checks if a point is within a measuring point's bounding box.
+         * @param {number} x - The x coordinate of the point.
+         * @param {number} y - The y coordinate of the point.
+         * @returns {number} The index of the measuring point, or -1 if no point is found.
+         */
+        function isPointInMeasurePoint(x, y) {
+            for (let i = 0; i < measurePoints.length; i++) {
+                const point = measurePoints[i];
+                const pointPos = toCanvasCoords(point.x, point.y);
+                const dx = x - pointPos.x;
+                const dy = y - pointPos.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance <= 5) { // 5 pixel radius
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        // Event listeners for dragging the robot and waypoints
         canvas.addEventListener('mousedown', (e) => {
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
 
             if (isPointInRobot(mouseX, mouseY)) {
-                isDragging = true;
+                isDraggingRobot = true;
                 canvas.style.cursor = 'grabbing';
+            } else if (isMeasuring) {
+                const pointIndex = isPointInMeasurePoint(mouseX, mouseY);
+                if (pointIndex !== -1) {
+                    isDraggingMeasurePoint = true;
+                    draggedMeasurePointIndex = pointIndex;
+                } else {
+                    const newPoint = toTableCoords(mouseX, mouseY);
+                    measurePoints.push(newPoint);
+                    draw();
+                }
+            } else {
+                const waypointIndex = isPointInWaypoint(mouseX, mouseY);
+                if (waypointIndex !== -1) {
+                    isDraggingWaypoint = true;
+                    draggedWaypointIndex = waypointIndex;
+                    canvas.style.cursor = 'grabbing';
+                }
             }
         });
 
         canvas.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const newTableCoords = toTableCoords(mouseX, mouseY);
 
-                const newTableCoords = toTableCoords(mouseX, mouseY);
+            if (isDraggingRobot) {
                 robot.x = newTableCoords.x;
                 robot.y = newTableCoords.y;
-
                 startXInput.value = robot.x.toFixed(2);
                 startYInput.value = robot.y.toFixed(2);
-
+                draw();
+            } else if (isDraggingWaypoint) {
+                instructions[draggedWaypointIndex].x = newTableCoords.x;
+                instructions[draggedWaypointIndex].y = newTableCoords.y;
+                renderInstructionList();
+                draw();
+            } else if (isDraggingMeasurePoint) {
+                measurePoints[draggedMeasurePointIndex].x = newTableCoords.x;
+                measurePoints[draggedMeasurePointIndex].y = newTableCoords.y;
                 draw();
             } else {
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-
-                if (isPointInRobot(mouseX, mouseY)) {
+                const isHoveringRobot = isPointInRobot(mouseX, mouseY);
+                const isHoveringWaypoint = isPointInWaypoint(mouseX, mouseY) !== -1;
+                const isHoveringMeasurePoint = isPointInMeasurePoint(mouseX, mouseY) !== -1;
+                if (isHoveringRobot || isHoveringWaypoint || isHoveringMeasurePoint) {
                     canvas.style.cursor = 'grab';
                 } else {
                     canvas.style.cursor = 'pointer';
@@ -999,7 +1146,11 @@ if __name__ == "__main__":
         });
 
         canvas.addEventListener('mouseup', () => {
-            isDragging = false;
+            isDraggingRobot = false;
+            isDraggingWaypoint = false;
+            draggedWaypointIndex = -1;
+            isDraggingMeasurePoint = false;
+            draggedMeasurePointIndex = -1;
             canvas.style.cursor = 'grab';
         });
 
@@ -1010,6 +1161,17 @@ if __name__ == "__main__":
         startSimulationBtn.addEventListener('click', handleStartSimulation);
         resetBtn.addEventListener('click', handleReset);
         copyCodeBtn.addEventListener('click', handleCopyCode);
+        downloadCodeBtn.addEventListener('click', handleDownloadCode);
+        measureBtn.addEventListener('click', () => {
+            isMeasuring = !isMeasuring;
+            if (isMeasuring) {
+                measureBtn.classList.add('bg-gray-700');
+                measurePoints = []; // Clear old points
+            } else {
+                measureBtn.classList.remove('bg-gray-700');
+            }
+            draw();
+        });
 
         // Update robot position when user changes the input fields
         startXInput.addEventListener('change', () => {
@@ -1055,7 +1217,6 @@ if __name__ == "__main__":
             resizeCanvas();
             draw();
         };
-
     </script>
 </body>
 </html>
