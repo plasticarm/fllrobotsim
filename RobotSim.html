@@ -3,21 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Robot Simulator</title>
+    <title>FLLRobot Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
+            background-color: #464646;
         }
         canvas {
-            border: 2px solid #e5e7eb;
+            border: 2px solid #1d1d1d;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 0.5rem;
+            background-color: #1d1d1d;
         }
         .code-output {
             background-color: #1f2937;
-            color: #d1d5db;
+            color: #ffffff;
             border-radius: 0.5rem;
             overflow-x: auto;
             white-space: pre-wrap;
@@ -72,7 +73,7 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
-    <div class="w-full bg-white p-8 rounded-lg shadow-lg">
+    <div class="w-full bg-grey-800 p-8 rounded-lg shadow-lg">
         <div class="flex flex-col lg:flex-row gap-8">
             <!-- Controls and Output -->
             <div class="flex-none w-full lg:w-[20%] flex flex-col gap-6">
