@@ -15,6 +15,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 0.5rem;
             background-color: #1d1d1d;
+            cursor: grab;
         }
         .code-output {
             background-color: #1f2937;
@@ -176,7 +177,7 @@
             </div>
             <!-- Simulation Canvas and Output -->
             <div class="flex-grow flex-1 w-full lg:w-[80%] flex flex-col justify-start items-start gap-4">
-                <canvas id="robotCanvas" class="flex-grow"></canvas>
+                <canvas id="robotCanvas" style="width: 100%; height: auto;"></canvas>
                 <div class="w-full flex flex-col items-center gap-4">
                     <button id="startSimulationBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md shadow-lg transition duration-300 transform hover:scale-105 w-full">
                         Start Simulation
@@ -245,6 +246,9 @@
         let isSimulating = false;
         let pathHistory = [];
         let dragSrcEl = null;
+
+        // Drag and drop state for the robot
+        let isDragging = false;
 
         /**
          * Calculates the correct canvas dimensions to maintain aspect ratio within its parent container.
@@ -915,6 +919,72 @@ if __name__ == "__main__":
             }
         }
         
+        /**
+         * Checks if a point is within the robot's bounding box.
+         * @param {number} x - The x coordinate of the point.
+         * @param {number} y - The y coordinate of the point.
+         * @returns {boolean} True if the point is inside the robot, false otherwise.
+         */
+        function isPointInRobot(x, y) {
+            const robotCanvasPos = toCanvasCoords(robot.x, robot.y);
+            const w = cmToPixels(parseFloat(robotWidthInput.value));
+            const h = cmToPixels(parseFloat(robotHeightInput.value));
+
+            // Create a temporary canvas and path to check for mouse intersection
+            const tempCtx = document.createElement('canvas').getContext('2d');
+            tempCtx.save();
+            tempCtx.translate(robotCanvasPos.x, robotCanvasPos.y);
+            tempCtx.rotate(robot.angle);
+            tempCtx.beginPath();
+            tempCtx.rect(-w / 2, -h / 2, w, h);
+            tempCtx.restore();
+            return tempCtx.isPointInPath(x, y);
+        }
+
+        // Event listeners for dragging the robot
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            if (isPointInRobot(mouseX, mouseY)) {
+                isDragging = true;
+                canvas.style.cursor = 'grabbing';
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                const newTableCoords = toTableCoords(mouseX, mouseY);
+                robot.x = newTableCoords.x;
+                robot.y = newTableCoords.y;
+
+                startXInput.value = robot.x.toFixed(2);
+                startYInput.value = robot.y.toFixed(2);
+
+                draw();
+            } else {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                if (isPointInRobot(mouseX, mouseY)) {
+                    canvas.style.cursor = 'grab';
+                } else {
+                    canvas.style.cursor = 'pointer';
+                }
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+        });
+
         // Event listeners
         addWaypointBtn.addEventListener('click', handleAddWaypoint);
         addMoveBtn.addEventListener('click', handleAddMove);
@@ -922,6 +992,22 @@ if __name__ == "__main__":
         startSimulationBtn.addEventListener('click', handleStartSimulation);
         resetBtn.addEventListener('click', handleReset);
         copyCodeBtn.addEventListener('click', handleCopyCode);
+
+        // Update robot position when user changes the input fields
+        startXInput.addEventListener('change', () => {
+            robot.x = parseFloat(startXInput.value);
+            draw();
+        });
+        startYInput.addEventListener('change', () => {
+            robot.y = parseFloat(startYInput.value);
+            draw();
+        });
+        startAngleInput.addEventListener('change', () => {
+            robot.angle = parseFloat(startAngleInput.value) * Math.PI / 180;
+            draw();
+        });
+        robotWidthInput.addEventListener('change', draw);
+        robotHeightInput.addEventListener('change', draw);
         
         // Initial draw and state setup
         handleReset();
