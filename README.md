@@ -11,6 +11,8 @@ TODO:
   Get waypoints to work. Would be great if you could add points by clicking and dragging reposition and waypoints could be used to elimate the need to add rotations for getting around the board.
   Python code needs to be customize for generating our specific commands.
   Add speed fields for adjusting speed.
+  A measure tool.
+  Save and load feature, possibly outputing a json file.
   
   
 
