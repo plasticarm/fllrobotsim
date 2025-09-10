@@ -182,6 +182,20 @@
                     <button id="startSimulationBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md shadow-lg transition duration-300 transform hover:scale-105 w-full">
                         Start Simulation
                     </button>
+                    <!-- Python Function Name Input Fields -->
+                    <div class="w-full p-6 bg-gray-800 rounded-lg shadow-sm">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-200">Python Function Names</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="moveFunctionName" class="block text-sm font-medium text-gray-200">Move Function Name</label>
+                                <input type="text" id="moveFunctionName" value="move" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            </div>
+                            <div>
+                                <label for="rotateFunctionName" class="block text-sm font-medium text-gray-200">Rotate Function Name</label>
+                                <input type="text" id="rotateFunctionName" value="rotate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            </div>
+                        </div>
+                    </div>
                     <div class="w-full p-6 bg-gray-800 rounded-lg shadow-sm">
                         <h2 class="text-xl font-semibold mb-4 text-gray-200">Generated Python Code</h2>
                         <div id="codeOutput" class="code-output p-4">
@@ -219,6 +233,8 @@
         const codeOutput = document.getElementById('codeOutput');
         const copyCodeBtn = document.getElementById('copyCodeBtn');
         const pathColorInput = document.getElementById('pathColor');
+        const moveFunctionNameInput = document.getElementById('moveFunctionName');
+        const rotateFunctionNameInput = document.getElementById('rotateFunctionName');
 
         // Image for the background
         const backgroundImage = new Image();
@@ -507,6 +523,8 @@
             const startY = parseFloat(startYInput.value).toFixed(2);
             const startAngle = parseFloat(startAngleInput.value).toFixed(2);
             const defaultSpeed = 100;
+            const moveFunction = moveFunctionNameInput.value || 'move';
+            const rotateFunction = rotateFunctionNameInput.value || 'rotate';
 
             let code = `
 # This code was automatically generated for mission: ${missionName}
@@ -517,12 +535,12 @@ import asyncio
 import time
 
 # A placeholder library for robot commands. Replace with your actual robot control library.
-async def move(distance_cm, speed):
+async def ${moveFunction}(distance_cm, speed):
     """Asynchronously moves the robot forward by the specified distance in cm at a given speed."""
     print(f"Moving forward by {distance_cm:.2f} cm at speed {speed}.")
     await asyncio.sleep(abs(distance_cm) / speed)
     
-async def rotate(angle_deg, speed):
+async def ${rotateFunction}(angle_deg, speed):
     """Asynchronously rotates the robot by a specific angle in degrees (positive for left, negative for right) at a given speed."""
     print(f"Rotating by {angle_deg:.2f} degrees at speed {speed}.")
     await asyncio.sleep(abs(angle_deg) / speed)
@@ -550,24 +568,24 @@ async def main():
                     if (angleDiff < -180) angleDiff += 360;
                     
                     if (Math.abs(angleDiff) > 1) { // A small tolerance for floating point errors
-                        code += `    await rotate(${angleDiff.toFixed(2)}, ${defaultSpeed})\n`;
+                        code += `    await ${rotateFunction}(${angleDiff.toFixed(2)}, ${defaultSpeed})\n`;
                         current_angle_deg += angleDiff;
                     }
                     
-                    code += `    await move(${distance.toFixed(2)}, ${defaultSpeed})\n`;
+                    code += `    await ${moveFunction}(${distance.toFixed(2)}, ${defaultSpeed})\n`;
                     current_x = instruction.x;
                     current_y = instruction.y;
                     current_angle_deg = targetAngleDeg;
 
                 } else if (instruction.type === 'move') {
                     const distance = instruction.distance;
-                    code += `    await move(${distance.toFixed(2)}, ${defaultSpeed})\n`;
+                    code += `    await ${moveFunction}(${distance.toFixed(2)}, ${defaultSpeed})\n`;
                     current_x += distance * Math.sin(current_angle_deg * Math.PI / 180);
                     current_y += distance * Math.cos(current_angle_deg * Math.PI / 180);
 
                 } else if (instruction.type === 'rotate') {
                     const angle = instruction.angle;
-                    code += `    await rotate(${angle.toFixed(2)}, ${defaultSpeed})\n`;
+                    code += `    await ${rotateFunction}(${angle.toFixed(2)}, ${defaultSpeed})\n`;
                     current_angle_deg += angle;
                 }
             });
