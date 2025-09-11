@@ -168,7 +168,7 @@
                 <!-- Simulation Controls and Path Color -->
                 <div class="p-6 bg-gray-800 rounded-lg shadow-sm flex items-center justify-between">
                     <div>
-                        <label for="pathColor" class="block text-sm font-medium text-gray-200">Path Color</label>
+                        <label for="pathColor" class="block text-sm font-medium text-gray-200">Robot Path Color</label>
                         <input type="color" id="pathColor" value="#22c55e" class="mt-1 h-10 w-10 rounded-full border-gray-300 shadow-sm">
                     </div>
                 </div>
@@ -189,6 +189,12 @@
                         </button>
                          <button id="createPathBtn" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                             Create Path
+                        </button>
+                        <button id="saveBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                            Save
+                        </button>
+                        <button id="loadBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                            Load
                         </button>
                     </div>
                 </div>
@@ -232,6 +238,7 @@
             </div>
         </div>
     </div>
+    <input type="file" id="fileInput" accept=".json" class="hidden">
 
     <script>
         // DOM element references
@@ -265,6 +272,9 @@
         const motor2FunctionNameInput = document.getElementById('motor2FunctionName');
         const measureBtn = document.getElementById('measureBtn');
         const createPathBtn = document.getElementById('createPathBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const loadBtn = document.getElementById('loadBtn');
+        const fileInput = document.getElementById('fileInput');
 
         // Image for the background
         const backgroundImage = new Image();
@@ -667,6 +677,10 @@
                         currentY = point.y;
                         plannedPathPoints.push({ x: currentX, y: currentY });
                     });
+                } else if (instruction.type === 'motor1' || instruction.type === 'motor2') {
+                    // Motor commands don't change the robot's position or orientation
+                    // The planned path simply stays at the same point
+                    plannedPathPoints.push({ x: currentX, y: currentY });
                 }
             });
             draw();
@@ -1218,6 +1232,88 @@ runloop.run(main())
         }
 
         /**
+         * Saves all relevant mission data as a JSON file.
+         */
+        function handleSave() {
+            const missionData = {
+                missionName: missionNameInput.value,
+                startX: parseFloat(startXInput.value),
+                startY: parseFloat(startYInput.value),
+                startAngle: parseFloat(startAngleInput.value),
+                robotWidth: parseFloat(robotWidthInput.value),
+                robotHeight: parseFloat(robotHeightInput.value),
+                pathColor: pathColorInput.value,
+                moveFunctionName: moveFunctionNameInput.value,
+                rotateFunctionName: rotateFunctionNameInput.value,
+                motor1FunctionName: motor1FunctionNameInput.value,
+                motor2FunctionName: motor2FunctionNameInput.value,
+                instructions: instructions,
+            };
+
+            const jsonData = JSON.stringify(missionData, null, 2);
+            const filename = `${missionNameInput.value.replace(/[^a-zA-Z0-9]/g, '_') || 'robot_mission'}.json`;
+            const blob = new Blob([jsonData], { type: 'application/json' });
+
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        }
+
+        /**
+         * Loads a mission from a selected JSON file.
+         */
+        function handleLoad() {
+            fileInput.click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const loadedData = JSON.parse(e.target.result);
+                    
+                    missionNameInput.value = loadedData.missionName || 'Robot Mission';
+                    startXInput.value = loadedData.startX || 0;
+                    startYInput.value = loadedData.startY || 0;
+                    startAngleInput.value = loadedData.startAngle || 0;
+                    robotWidthInput.value = loadedData.robotWidth || 12.5;
+                    robotHeightInput.value = loadedData.robotHeight || 18;
+                    pathColorInput.value = loadedData.pathColor || '#22c55e';
+                    moveFunctionNameInput.value = loadedData.moveFunctionName || 'move';
+                    rotateFunctionNameInput.value = loadedData.rotateFunctionName || 'rotate';
+                    motor1FunctionNameInput.value = loadedData.motor1FunctionName || 'rotateLeftArm';
+                    motor2FunctionNameInput.value = loadedData.motor2FunctionName || 'rotateRightArm';
+                    
+                    instructions = loadedData.instructions || [];
+                    
+                    // Clear other tool points
+                    measurePoints = [];
+                    pathPoints = [];
+                    isCreatingPath = false;
+                    isMeasuring = false;
+                    
+                    renderInstructionList();
+                    draw();
+                    calculatePlannedPath();
+
+                } catch (err) {
+                    console.error('Failed to parse JSON file:', err);
+                    alert('Failed to load mission. The file may be corrupted or in an invalid format.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        /**
          * Checks if a point is within the robot's bounding box.
          * @param {number} x - The x coordinate of the point.
          * @param {number} y - The y coordinate of the point.
@@ -1370,6 +1466,9 @@ runloop.run(main())
         resetBtn.addEventListener('click', handleReset);
         copyCodeBtn.addEventListener('click', handleCopyCode);
         downloadCodeBtn.addEventListener('click', handleDownloadCode);
+        saveBtn.addEventListener('click', handleSave);
+        loadBtn.addEventListener('click', handleLoad);
+        fileInput.addEventListener('change', handleFileSelect);
         
         measureBtn.addEventListener('click', () => {
             isMeasuring = !isMeasuring;
