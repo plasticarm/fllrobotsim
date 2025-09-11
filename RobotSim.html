@@ -12,8 +12,7 @@
         }
         canvas {
             border: 2px solid #1d1d1d;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);            
             background-color: #1d1d1d;
             cursor: grab;
         }
@@ -143,6 +142,15 @@
                             Add Rotate
                         </button>
                     </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 my-4">
+                        <button id="addMotor1Btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                            Add Motor 1 Rotation
+                        </button>
+                        <button id="addMotor2Btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                            Add Motor 2 Rotation
+                        </button>
+                    </div>
 
                     <button id="resetBtn" class="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                         Reset
@@ -176,10 +184,10 @@
                         Stop
                     </button>
                     <div id="toolbar" class="w-[60%] flex justify-start items-center gap-4 p-4 rounded-lg bg-gray-800 shadow-sm">
-                        <button id="measureBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                        <button id="measureBtn" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                             Measure
                         </button>
-                         <button id="createPathBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                         <button id="createPathBtn" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                             Create Path
                         </button>
                     </div>
@@ -196,6 +204,14 @@
                         <div>
                             <label for="rotateFunctionName" class="block text-sm font-medium text-gray-200">Rotate Function Name</label>
                             <input type="text" id="rotateFunctionName" value="rotate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                        </div>
+                         <div>
+                            <label for="motor1FunctionName" class="block text-sm font-medium text-gray-200">Motor 1 Function Name</label>
+                            <input type="text" id="motor1FunctionName" value="rotateLeftArm" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                        </div>
+                        <div>
+                            <label for="motor2FunctionName" class="block text-sm font-medium text-gray-200">Motor 2 Function Name</label>
+                            <input type="text" id="motor2FunctionName" value="rotateRightArm" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                     </div>
                 </div>
@@ -233,6 +249,8 @@
         const rotateSpeedInput = document.getElementById('rotateSpeed');
         const addMoveBtn = document.getElementById('addMoveBtn');
         const addRotateBtn = document.getElementById('addRotateBtn');
+        const addMotor1Btn = document.getElementById('addMotor1Btn');
+        const addMotor2Btn = document.getElementById('addMotor2Btn');
         const startSimulationBtn = document.getElementById('startSimulationBtn');
         const stopSimulationBtn = document.getElementById('stopSimulationBtn');
         const resetBtn = document.getElementById('resetBtn');
@@ -243,6 +261,8 @@
         const pathColorInput = document.getElementById('pathColor');
         const moveFunctionNameInput = document.getElementById('moveFunctionName');
         const rotateFunctionNameInput = document.getElementById('rotateFunctionName');
+        const motor1FunctionNameInput = document.getElementById('motor1FunctionName');
+        const motor2FunctionNameInput = document.getElementById('motor2FunctionName');
         const measureBtn = document.getElementById('measureBtn');
         const createPathBtn = document.getElementById('createPathBtn');
 
@@ -288,6 +308,10 @@
         let pathPoints = [];
         let isDraggingPathPoint = false;
         let draggedPathPointIndex = -1;
+        
+        // Motor commands simulation state
+        let motorPauseStartTime = null;
+        const MOTOR_PAUSE_DURATION = 1000; // 1 second in milliseconds
 
         // Global helper functions
         const toRadians = (deg) => deg * Math.PI / 180;
@@ -658,33 +682,40 @@
             const startAngle = parseFloat(startAngleInput.value).toFixed(2);
             const moveFunction = moveFunctionNameInput.value || 'move';
             const rotateFunction = rotateFunctionNameInput.value || 'rotate';
+            const motor1Function = motor1FunctionNameInput.value || 'rotateLeftArm';
+            const motor2Function = motor2FunctionNameInput.value || 'rotateRightArm';
 
             let code = `
 # This code was automatically generated for mission: ${missionName}
-# It assumes a library named 'robot_lib' with asynchronous commands for movement and rotation.
+# It assumes a library named '*' with asynchronous commands for movement and rotation.
+"""
+Available functions in the common library:
+
+setupMotors()
+resetYaw()
+degreesForDistance(distance_cm)
+drive(distance, speed)
+rotateRightArm(degrees, speed)
+rotateLeftArm(degrees, speed)
+rotateCenterArm(degrees, speed)
+resetArmRotation()
+turn_done()
+rotateDegrees(degrees, speed)
+spin_turn(robot_degrees, motor_speed)
+pivot_turn(robot_degrees, motor_speed)
+all_done()
+beep(frequency, duration)
+"""
 
 from common import *
-from hub import port, light_matrix, motion_sensor, sound
-import hub
-import motor
-import runloop, motor_pair, sys, math, asyncio
-
-# A placeholder library for robot commands. Replace with your actual robot control library.
-async def ${moveFunction}(distance_cm, speed):
-    """Asynchronously moves the robot forward by the specified distance in cm at a given speed."""
-    print(f"Moving forward by {distance_cm:.2f} cm at speed {speed}.")
-    await asyncio.sleep(abs(distance_cm) / speed)
-    
-async def ${rotateFunction}(angle_deg, speed):
-    """Asynchronously rotates the robot by a specific angle in degrees (positive for left, negative for right) at a given speed."""
-    print(f"Rotating by {angle_deg:.2f} degrees at speed {speed}.")
-    await asyncio.sleep(abs(angle_deg) / speed)
+import runloop
 
 async def main():
-    print(f"Starting mission: ${missionName}")
-    print(f"Initial Position: ({startX}, {startY}) cm")
-    print(f"Initial Angle: {startAngle} degrees")
-    print("---------------------------------------")
+    # Starting mission: ${missionName}
+    # Initial Position: ${startX}, ${startY} cm
+    # Initial Angle: ${startAngle} degrees   
+    # Initialize the motor pair for wheels and save motor positions. Do this every time.
+    await init()
 
 `;
             let current_x = parseFloat(startXInput.value);
@@ -736,15 +767,18 @@ async def main():
                     current_x = pathCurrentX;
                     current_y = pathCurrentY;
                     current_angle_deg = pathCurrentAngleDeg;
+                } else if (instruction.type === 'motor1') {
+                    code += `    await ${motor1Function}(${instruction.angle.toFixed(0)}, ${instruction.speed.toFixed(0)})\n`;
+                } else if (instruction.type === 'motor2') {
+                    code += `    await ${motor2Function}(${instruction.angle.toFixed(0)}, ${instruction.speed.toFixed(0)})\n`;
                 }
             });
             
             code += `
-    print("---------------------------------------")
-    print("Mission complete. All instructions executed.")
+    # reset the arms before finishing so they are ready to go again.
+    await resetArmRotation()
 
-if __name__ == "__main__":
-    asyncio.run(main())
+runloop.run(main())
 `;
             codeOutput.textContent = code;
         }
@@ -752,7 +786,7 @@ if __name__ == "__main__":
         /**
          * The main simulation loop.
          */
-        function simulateMovement() {
+        function simulateMovement(timestamp) {
             if (!isSimulating) {
                 return;
             }
@@ -853,6 +887,15 @@ if __name__ == "__main__":
                         }
                     }
                 }
+            } else if (instruction.type === 'motor1' || instruction.type === 'motor2') {
+                if (motorPauseStartTime === null) {
+                    motorPauseStartTime = timestamp;
+                }
+                const elapsedTime = timestamp - motorPauseStartTime;
+                if (elapsedTime >= MOTOR_PAUSE_DURATION) {
+                    currentInstructionIndex++;
+                    motorPauseStartTime = null;
+                }
             }
             draw();
             requestAnimationFrame(simulateMovement);
@@ -876,6 +919,10 @@ if __name__ == "__main__":
                     text += `Rotate ${instruction.angle.toFixed(2)} deg @ ${instruction.speed.toFixed(0)}`;
                 } else if (instruction.type === 'followPath') {
                     text += `Follow Path (${instruction.points.length} points)`;
+                } else if (instruction.type === 'motor1') {
+                    text += `Motor 1 Rot: 90 deg @ 500`;
+                } else if (instruction.type === 'motor2') {
+                    text += `Motor 2 Rot: 90 deg @ 500`;
                 }
                 
                 listItem.innerHTML = `
@@ -976,11 +1023,15 @@ if __name__ == "__main__":
                 isCreatingPath = true;
                 pathPoints = instruction.points;
                 createPathBtn.textContent = 'Finish Path';
-                createPathBtn.classList.remove('bg-gray-600');
-                createPathBtn.classList.add('bg-blue-600');
+                createPathBtn.classList.remove('bg-purple-500');
+                createPathBtn.classList.add('bg-purple-700');
                 instructions.splice(index, 1); // Temporarily remove the instruction from the list
                 renderInstructionList();
                 draw();
+                return;
+            } else if (instruction.type === 'motor1' || instruction.type === 'motor2') {
+                 // Do not allow editing these commands for now
+                alert('Motor rotation commands are not editable in the simulator. You can delete and re-add them.');
                 return;
             }
             
@@ -1038,6 +1089,22 @@ if __name__ == "__main__":
         }
 
         /**
+         * Adds a motor 1 rotation command.
+         */
+        function handleAddMotor1() {
+            instructions.push({ type: 'motor1', angle: 90, speed: 500 });
+            renderInstructionList();
+        }
+
+        /**
+         * Adds a motor 2 rotation command.
+         */
+        function handleAddMotor2() {
+            instructions.push({ type: 'motor2', angle: 90, speed: 500 });
+            renderInstructionList();
+        }
+
+        /**
          * Resets the simulation state.
          */
         function handleReset() {
@@ -1058,10 +1125,11 @@ if __name__ == "__main__":
             pathPoints = [];
             isCreatingPath = false;
             isMeasuring = false;
-            measureBtn.classList.remove('bg-blue-600');
-            measureBtn.classList.add('bg-gray-600');
-            createPathBtn.classList.remove('bg-blue-600');
-            createPathBtn.classList.add('bg-gray-600');
+            motorPauseStartTime = null;
+            measureBtn.classList.remove('bg-yellow-700');
+            measureBtn.classList.add('bg-yellow-500');
+            createPathBtn.classList.remove('bg-purple-700');
+            createPathBtn.classList.add('bg-purple-500');
             calculatePlannedPath();
             draw();
         }
@@ -1090,7 +1158,7 @@ if __name__ == "__main__":
             isSimulating = true;
             startSimulationBtn.textContent = 'Simulating...';
             codeOutput.textContent = 'Generating code...';
-            simulateMovement();
+            requestAnimationFrame(simulateMovement);
         }
 
         function handleStopSimulation() {
@@ -1106,6 +1174,7 @@ if __name__ == "__main__":
             };
             pathHistory = [];
             currentInstructionIndex = 0;
+            motorPauseStartTime = null;
             draw();
         }
 
@@ -1294,6 +1363,8 @@ if __name__ == "__main__":
         // Event listeners
         addMoveBtn.addEventListener('click', handleAddMove);
         addRotateBtn.addEventListener('click', handleAddRotate);
+        addMotor1Btn.addEventListener('click', handleAddMotor1);
+        addMotor2Btn.addEventListener('click', handleAddMotor2);
         startSimulationBtn.addEventListener('click', handleStartSimulation);
         stopSimulationBtn.addEventListener('click', handleStopSimulation);
         resetBtn.addEventListener('click', handleReset);
@@ -1304,14 +1375,14 @@ if __name__ == "__main__":
             isMeasuring = !isMeasuring;
             if (isMeasuring) {
                 isCreatingPath = false; // Disable path creation
-                createPathBtn.classList.remove('bg-blue-600');
-                createPathBtn.classList.add('bg-gray-600');
-                measureBtn.classList.remove('bg-gray-600');
-                measureBtn.classList.add('bg-blue-600');
+                createPathBtn.classList.remove('bg-purple-700');
+                createPathBtn.classList.add('bg-purple-500');
+                measureBtn.classList.remove('bg-yellow-500');
+                measureBtn.classList.add('bg-yellow-700');
                 measurePoints = []; // Clear old points
             } else {
-                measureBtn.classList.remove('bg-blue-600');
-                measureBtn.classList.add('bg-gray-600');
+                measureBtn.classList.remove('bg-yellow-700');
+                measureBtn.classList.add('bg-yellow-500');
             }
             draw();
         });
@@ -1325,16 +1396,16 @@ if __name__ == "__main__":
                 }
                 pathPoints = [];
                 isCreatingPath = false;
-                createPathBtn.classList.remove('bg-blue-600');
-                createPathBtn.classList.add('bg-gray-600');
+                createPathBtn.classList.remove('bg-purple-700');
+                createPathBtn.classList.add('bg-purple-500');
             } else {
                 // Start a new path
                 isCreatingPath = true;
                 isMeasuring = false; // Disable measuring tool
-                measureBtn.classList.remove('bg-blue-600');
-                measureBtn.classList.add('bg-gray-600');
-                createPathBtn.classList.remove('bg-gray-600');
-                createPathBtn.classList.add('bg-blue-600');
+                measureBtn.classList.remove('bg-yellow-700');
+                measureBtn.classList.add('bg-yellow-500');
+                createPathBtn.classList.remove('bg-purple-500');
+                createPathBtn.classList.add('bg-purple-700');
                 pathPoints = [];
             }
             draw();
