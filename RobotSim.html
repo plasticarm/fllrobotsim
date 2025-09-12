@@ -87,11 +87,11 @@
                     <div class="grid grid-cols-3 gap-4 mb-4">
                         <div>
                             <label for="startX" class="block text-sm font-medium text-gray-200">Start X (cm)</label>
-                            <input type="number" id="startX" value="-111.85" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            <input type="number" id="startX" value="-93.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                         <div>
                             <label for="startY" class="block text-sm font-medium text-gray-200">Start Y (cm)</label>
-                            <input type="number" id="startY" value="-48.15" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            <input type="number" id="startY" value="-48.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                         <div>
                             <label for="startAngle" class="block text-sm font-medium text-gray-200">Start Angle (deg)</label>
@@ -175,6 +175,10 @@
                         <label for="pathColor" class="block text-sm font-medium text-gray-200">Robot Path Color</label>
                         <input type="color" id="pathColor" value="#22c55e" class="mt-1 h-10 w-10 rounded-full border-gray-300 shadow-sm">
                     </div>
+                    <div class="ml-4">
+                        <label for="robotColor" class="block text-sm font-medium text-gray-200">Robot Color</label>
+                        <input type="color" id="robotColor" value="#3b82f6" class="mt-1 h-10 w-10 rounded-full border-gray-300 shadow-sm">
+                    </div>
                 </div>
             </div>
             <!-- Simulation Canvas and Output -->
@@ -203,7 +207,7 @@
                         <!-- New Opacity Slider for Second Map -->
                         <div class="flex flex-col items-center">
                             <label for="map2Opacity" class="text-sm font-medium text-gray-200">Map Opacity</label>
-                            <input type="range" id="map2Opacity" min="0" max="1" value="1" step="0.1" class="mt-1 w-24">
+                            <input type="range" id="map2Opacity" min="0" max="1" value="0.5" step="0.1" class="mt-1 w-24">
                         </div>
                     </div>
                 </div>
@@ -218,6 +222,10 @@
                             <button id="forwardBtn" class="text-gray-200 font-bold text-2xl px-2">»</button>
                         </div>
                         <span id="totalTimeDisplay" class="text-gray-200 font-bold w-12">0.0s</span>
+                    </div>
+                    <div class="flex items-center mt-4 gap-4">
+                        <label for="playbackSpeed" class="text-sm font-medium text-gray-200 whitespace-nowrap">Playback Speed</label>
+                        <input type="number" id="playbackSpeed" value="1.0" step="0.1" class="mt-1 w-[20%] text-right px-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                     </div>
                 </div>
                 
@@ -289,6 +297,7 @@
         const copyCodeBtn = document.getElementById('copyCodeBtn');
         const downloadCodeBtn = document.getElementById('downloadCodeBtn');
         const pathColorInput = document.getElementById('pathColor');
+        const robotColorInput = document.getElementById('robotColor');
         const moveFunctionNameInput = document.getElementById('moveFunctionName');
         const rotateFunctionNameInput = document.getElementById('rotateFunctionName');
         const motor1FunctionNameInput = document.getElementById('motor1FunctionName');
@@ -304,6 +313,7 @@
         const forwardBtn = document.getElementById('forwardBtn');
         const currentTimeDisplay = document.getElementById('currentTimeDisplay');
         const totalTimeDisplay = document.getElementById('totalTimeDisplay');
+        const playbackSpeedInput = document.getElementById('playbackSpeed');
 
         // Image for the background
         const backgroundImage = new Image();
@@ -331,6 +341,7 @@
         };
         let robotStateHistory = [];
         let totalMissionTime = 0;
+        let playbackSpeed = 1.0;
 
         // Instructions
         let instructions = [];
@@ -505,22 +516,23 @@
             const pos = toCanvasCoords(robot.x, robot.y);
             const w = cmToPixels(parseFloat(robotWidthInput.value));
             const h = cmToPixels(parseFloat(robotHeightInput.value));
-            const pivotY = cmToPixels(parseFloat(pivotYInput.value));
+            const pivotY = parseFloat(pivotYInput.value);
+            const pivotY_px = cmToPixels(pivotY);
 
             ctx.save();
             ctx.translate(pos.x, pos.y);
             ctx.rotate(robot.angle);
 
             // Draw the robot body, visually offset by the pivotY
-            ctx.fillStyle = '#3b82f6';
-            ctx.fillRect(-w/2, -h/2 + pivotY, w, h);
+            ctx.fillStyle = robotColorInput.value;
+            ctx.fillRect(-w/2, -h/2 + pivotY_px, w, h);
             
             // Draw the forward-facing line, also offset by pivotY
             ctx.strokeStyle = '#1e40af';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(0, pivotY);
-            ctx.lineTo(0, -h/2 + pivotY);
+            ctx.moveTo(0, pivotY_px);
+            ctx.lineTo(0, -h/2 + pivotY_px);
             ctx.stroke();
             
             // Draw the grey pivot line (axle) on top
@@ -963,8 +975,8 @@ runloop.run(main())
                         const angleRotated = (rotateSpeed / 10) * Math.sign(instruction.angle) * timeInInstruction;
                         finalAngleRad = currentAngleRad + toRadians(angleRotated);
                         
-                        finalState.x = currentX;
-                        finalState.y = currentY;
+                        finalX = currentX;
+                        finalY = currentY;
                         finalState.angle = finalAngleRad;
                         return finalState;
                     }
@@ -1051,7 +1063,7 @@ runloop.run(main())
 
             const deltaTime = (timestamp - lastTimestamp) / 1000;
             const sliderValue = parseFloat(timeSlider.value);
-            const newSliderValue = sliderValue + (deltaTime / totalMissionTime);
+            const newSliderValue = sliderValue + (deltaTime * playbackSpeed / totalMissionTime);
             
             timeSlider.value = newSliderValue;
             updateSimulationState(newSliderValue);
@@ -1392,7 +1404,9 @@ runloop.run(main())
                 robotHeight: parseFloat(robotHeightInput.value),
                 pivotY: parseFloat(pivotYInput.value),
                 pathColor: pathColorInput.value,
+                robotColor: robotColorInput.value,
                 map2Opacity: parseFloat(map2OpacityInput.value),
+                playbackSpeed: parseFloat(playbackSpeedInput.value),
                 moveFunctionName: moveFunctionNameInput.value,
                 rotateFunctionName: rotateFunctionNameInput.value,
                 motor1FunctionName: motor1FunctionNameInput.value,
@@ -1432,14 +1446,16 @@ runloop.run(main())
                     const loadedData = JSON.parse(e.target.result);
                     
                     missionNameInput.value = loadedData.missionName || 'Robot Mission';
-                    startXInput.value = loadedData.startX || 0;
-                    startYInput.value = loadedData.startY || 0;
+                    startXInput.value = loadedData.startX || -93.0;
+                    startYInput.value = loadedData.startY || -48.0;
                     startAngleInput.value = loadedData.startAngle || 0;
                     robotWidthInput.value = loadedData.robotWidth || 12.5;
                     robotHeightInput.value = loadedData.robotHeight || 18;
                     pivotYInput.value = loadedData.pivotY || 0;
                     pathColorInput.value = loadedData.pathColor || '#22c55e';
-                    map2OpacityInput.value = loadedData.map2Opacity || 1;
+                    robotColorInput.value = loadedData.robotColor || '#3b82f6';
+                    map2OpacityInput.value = loadedData.map2Opacity || 0.5;
+                    playbackSpeedInput.value = loadedData.playbackSpeed || 1.0;
                     moveFunctionNameInput.value = loadedData.moveFunctionName || 'drive';
                     rotateFunctionNameInput.value = loadedData.rotateFunctionName || 'rotateDegrees';
                     motor1FunctionNameInput.value = loadedData.motor1FunctionName || 'rotateLeftArm';
@@ -1688,6 +1704,13 @@ runloop.run(main())
         forwardBtn.addEventListener('click', () => {
             timeSlider.value = Math.min(1, parseFloat(timeSlider.value) + 0.01);
             updateSimulationState(parseFloat(timeSlider.value));
+        });
+
+        playbackSpeedInput.addEventListener('input', (e) => {
+            playbackSpeed = parseFloat(e.target.value);
+            if (isNaN(playbackSpeed) || playbackSpeed <= 0) {
+                playbackSpeed = 1.0;
+            }
         });
 
 
