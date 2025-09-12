@@ -196,6 +196,11 @@
                         <button id="loadBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                             Load
                         </button>
+                        <!-- New Opacity Slider for Second Map -->
+                        <div class="flex flex-col items-center">
+                            <label for="map2Opacity" class="text-sm font-medium text-gray-200">Map Opacity</label>
+                            <input type="range" id="map2Opacity" min="0" max="1" value="1" step="0.1" class="mt-1 w-24">
+                        </div>
                     </div>
                 </div>
                 
@@ -275,12 +280,19 @@
         const saveBtn = document.getElementById('saveBtn');
         const loadBtn = document.getElementById('loadBtn');
         const fileInput = document.getElementById('fileInput');
+        const map2OpacityInput = document.getElementById('map2Opacity');
 
         // Image for the background
         const backgroundImage = new Image();
         backgroundImage.crossOrigin = "anonymous";
         backgroundImage.src = "https://raw.githubusercontent.com/plasticarm/fllrobotsim/main/MapDiagram.png";
         let isImageLoaded = false;
+        
+        // Second image for the overlay
+        const backgroundImage2 = new Image();
+        backgroundImage2.crossOrigin = "anonymous";
+        backgroundImage2.src = "https://raw.githubusercontent.com/plasticarm/fllrobotsim/main/MapImage.png";
+        let isImage2Loaded = false;
 
         // Table and Canvas Dimensions
         const TABLE_WIDTH_MM = 2362;
@@ -445,8 +457,6 @@
             if (isImageLoaded) {
                 const imgWidth = backgroundImage.naturalWidth;
                 const imgHeight = backgroundImage.naturalHeight;
-                const imgAspect = imgWidth / imgHeight;
-                const canvasAspect = canvas.width / canvas.height;
                 let drawWidth, drawHeight, drawX, drawY;
 
                 // Scale to fit while maintaining aspect ratio
@@ -459,6 +469,14 @@
                 drawY = (canvas.height - drawHeight) / 2;
                 
                 ctx.drawImage(backgroundImage, drawX, drawY, drawWidth, drawHeight);
+
+                // Draw second image with opacity
+                if (isImage2Loaded) {
+                    ctx.save();
+                    ctx.globalAlpha = map2OpacityInput.value;
+                    ctx.drawImage(backgroundImage2, drawX, drawY, drawWidth, drawHeight);
+                    ctx.restore();
+                }
             } else {
                 drawGrid();
             }
@@ -1252,6 +1270,7 @@ runloop.run(main())
                 robotWidth: parseFloat(robotWidthInput.value),
                 robotHeight: parseFloat(robotHeightInput.value),
                 pathColor: pathColorInput.value,
+                map2Opacity: parseFloat(map2OpacityInput.value),
                 moveFunctionName: moveFunctionNameInput.value,
                 rotateFunctionName: rotateFunctionNameInput.value,
                 motor1FunctionName: motor1FunctionNameInput.value,
@@ -1297,6 +1316,7 @@ runloop.run(main())
                     robotWidthInput.value = loadedData.robotWidth || 12.5;
                     robotHeightInput.value = loadedData.robotHeight || 18;
                     pathColorInput.value = loadedData.pathColor || '#22c55e';
+                    map2OpacityInput.value = loadedData.map2Opacity || 1;
                     moveFunctionNameInput.value = loadedData.moveFunctionName || 'move';
                     rotateFunctionNameInput.value = loadedData.rotateFunctionName || 'rotate';
                     motor1FunctionNameInput.value = loadedData.motor1FunctionName || 'rotateLeftArm';
@@ -1574,6 +1594,20 @@ runloop.run(main())
              resizeCanvas();
              draw(); // Draw grid as fallback
         };
+        
+        backgroundImage2.onload = () => {
+            isImage2Loaded = true;
+            draw();
+        };
+        backgroundImage2.onerror = () => {
+            console.error("Failed to load second background image.");
+            isImage2Loaded = false;
+            draw();
+        };
+        
+        map2OpacityInput.addEventListener('input', () => {
+            draw();
+        });
 
         // Resize the canvas when the window size changes
         window.addEventListener('resize', () => {
