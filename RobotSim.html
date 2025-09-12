@@ -318,6 +318,7 @@
         let pathPoints = [];
         let isDraggingPathPoint = false;
         let draggedPathPointIndex = -1;
+        let hoveredPathPointIndex = -1;
         
         // Motor commands simulation state
         let motorPauseStartTime = null;
@@ -448,17 +449,15 @@
                 const canvasAspect = canvas.width / canvas.height;
                 let drawWidth, drawHeight, drawX, drawY;
 
-                if (imgAspect > canvasAspect) { // Image is wider than canvas
-                    drawHeight = canvas.height;
-                    drawWidth = imgWidth * (canvas.height / imgHeight);
-                    drawX = (canvas.width - drawWidth) / 2;
-                    drawY = 0;
-                } else { // Image is taller than or same aspect as canvas
-                    drawWidth = canvas.width;
-                    drawHeight = imgHeight * (canvas.width / imgWidth);
-                    drawX = 0;
-                    drawY = (canvas.height - drawHeight) / 2;
-                }
+                // Scale to fit while maintaining aspect ratio
+                let scaleFactor = Math.min(canvas.width / imgWidth, canvas.height / imgHeight);
+                drawWidth = imgWidth * scaleFactor;
+                drawHeight = imgHeight * scaleFactor;
+
+                // Center the image
+                drawX = (canvas.width - drawWidth) / 2;
+                drawY = (canvas.height - drawHeight) / 2;
+                
                 ctx.drawImage(backgroundImage, drawX, drawY, drawWidth, drawHeight);
             } else {
                 drawGrid();
@@ -622,8 +621,16 @@
          * Draws the path points.
          */
         function drawPathPoints() {
-            pathPoints.forEach(point => {
+            pathPoints.forEach((point, index) => {
                 const pos = toCanvasCoords(point.x, point.y);
+                // Highlight hovered point
+                if (index === hoveredPathPointIndex) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 8, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
                 ctx.fillStyle = '#800080'; // Purple
                 ctx.beginPath();
                 ctx.arc(pos.x, pos.y, 5, 0, 2 * Math.PI);
@@ -950,6 +957,7 @@ runloop.run(main())
                 instructionList.appendChild(listItem);
             });
             addDragListeners();
+            generatePythonCode();
             calculatePlannedPath();
         }
 
@@ -1140,6 +1148,7 @@ runloop.run(main())
             isCreatingPath = false;
             isMeasuring = false;
             motorPauseStartTime = null;
+            hoveredPathPointIndex = -1;
             measureBtn.classList.remove('bg-yellow-700');
             measureBtn.classList.add('bg-yellow-500');
             createPathBtn.classList.remove('bg-purple-700');
@@ -1436,14 +1445,17 @@ runloop.run(main())
                 pathPoints[draggedPathPointIndex].y = newTableCoords.y;
                 draw();
             } else {
+                hoveredPathPointIndex = isPointInPathPoint(mouseX, mouseY);
                 const isHoveringRobot = isPointInRobot(mouseX, mouseY);
                 const isHoveringMeasurePoint = isPointInMeasurePoint(mouseX, mouseY) !== -1;
-                const isHoveringPathPoint = isPointInPathPoint(mouseX, mouseY) !== -1;
-                if (isHoveringRobot || isHoveringMeasurePoint || isHoveringPathPoint) {
+                if (isHoveringRobot || isHoveringMeasurePoint || hoveredPathPointIndex !== -1) {
                     canvas.style.cursor = 'grab';
                 } else {
                     canvas.style.cursor = 'pointer';
                 }
+            }
+            if (isCreatingPath) {
+                draw();
             }
         });
 
@@ -1454,6 +1466,16 @@ runloop.run(main())
             isDraggingPathPoint = false;
             draggedPathPointIndex = -1;
             canvas.style.cursor = 'grab';
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (isCreatingPath && hoveredPathPointIndex !== -1) {
+                    pathPoints.splice(hoveredPathPointIndex, 1);
+                    hoveredPathPointIndex = -1; // Reset hover
+                    draw();
+                }
+            }
         });
 
         // Event listeners
