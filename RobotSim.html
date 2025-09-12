@@ -113,6 +113,10 @@
                             <input type="number" id="robotHeight" value="18" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                     </div>
+                    <div>
+                        <label for="pivotY" class="block text-sm font-medium text-gray-200">Pivot Y Offset (cm)</label>
+                        <input type="number" id="pivotY" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                    </div>
                 </div>
 
                 <!-- Command Input -->
@@ -255,6 +259,7 @@
         const startAngleInput = document.getElementById('startAngle');
         const robotWidthInput = document.getElementById('robotWidth');
         const robotHeightInput = document.getElementById('robotHeight');
+        const pivotYInput = document.getElementById('pivotY');
         const moveDistanceInput = document.getElementById('moveDistance');
         const rotateAngleInput = document.getElementById('rotateAngle');
         const moveSpeedInput = document.getElementById('moveSpeed');
@@ -489,20 +494,40 @@
             const pos = toCanvasCoords(robot.x, robot.y);
             const w = cmToPixels(parseFloat(robotWidthInput.value));
             const h = cmToPixels(parseFloat(robotHeightInput.value));
-
+            const pivotY = cmToPixels(parseFloat(pivotYInput.value));
+            
             ctx.save();
+            // Translate to robot's center and then rotate
             ctx.translate(pos.x, pos.y);
             ctx.rotate(robot.angle);
 
+            // Draw robot body (relative to its center)
             ctx.fillStyle = '#3b82f6';
             ctx.fillRect(-w/2, -h/2, w, h);
 
+            // Draw forward-facing line
             ctx.strokeStyle = '#1e40af';
             ctx.lineWidth = 3;
             ctx.beginPath();
             ctx.moveTo(0, 0);
             ctx.lineTo(0, -h/2);
             ctx.stroke();
+            
+            // Draw pivot line (relative to robot's local coordinates)
+            ctx.strokeStyle = '#6b7280';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-w/2, -pivotY);
+            ctx.lineTo(w/2, -pivotY);
+            ctx.stroke();
+            
+            // Draw wheels (relative to the pivot line)
+            const wheelWidth = cmToPixels(0.8);
+            const wheelHeight = cmToPixels(5.5);
+            const wheelOffset = w/2 + 2; // A little outside the robot body
+            ctx.fillStyle = '#60a5fa'; // Light blue
+            ctx.fillRect(-wheelOffset, -pivotY - wheelHeight/2, wheelWidth, wheelHeight);
+            ctx.fillRect(wheelOffset - wheelWidth, -pivotY - wheelHeight/2, wheelWidth, wheelHeight);
             
             ctx.restore();
         }
@@ -677,6 +702,7 @@
             let currentX = parseFloat(startXInput.value);
             let currentY = parseFloat(startYInput.value);
             let currentAngleRad = parseFloat(startAngleInput.value) * Math.PI / 180;
+            const pivotY = parseFloat(pivotYInput.value);
 
             plannedPathPoints.push({ x: currentX, y: currentY });
 
@@ -687,24 +713,34 @@
                     currentY += distance * Math.cos(currentAngleRad);
                     plannedPathPoints.push({ x: currentX, y: currentY });
                 } else if (instruction.type === 'rotate') {
-                    currentAngleRad += instruction.angle * Math.PI / 180;
+                    const angle = instruction.angle;
+                    const angleRad = toRadians(angle);
+                    const oldAngleRad = currentAngleRad;
+                    currentAngleRad += angleRad;
+                    
+                    const pivX = currentX + pivotY * Math.cos(oldAngleRad);
+                    const pivY = currentY - pivotY * Math.sin(oldAngleRad);
+
+                    currentX = pivX - pivotY * Math.cos(currentAngleRad);
+                    currentY = pivY + pivotY * Math.sin(currentAngleRad);
                 } else if (instruction.type === 'followPath') {
-                    // Update angle and position for each point in the path
                     instruction.points.forEach(point => {
                         const dx = point.x - currentX;
                         const dy = point.y - currentY;
                         
-                        // Calculate the new angle to face the next point
                         const targetAngleRad = Math.atan2(dx, dy);
+                        const oldAngleRad = currentAngleRad;
                         currentAngleRad = targetAngleRad;
+
+                        currentX = currentX + (pivotY * Math.cos(oldAngleRad)) - (pivotY * Math.cos(currentAngleRad));
+                        currentY = currentY - (pivotY * Math.sin(oldAngleRad)) + (pivotY * Math.sin(currentAngleRad));
 
                         currentX = point.x;
                         currentY = point.y;
+                        
                         plannedPathPoints.push({ x: currentX, y: currentY });
                     });
                 } else if (instruction.type === 'motor1' || instruction.type === 'motor2') {
-                    // Motor commands don't change the robot's position or orientation
-                    // The planned path simply stays at the same point
                     plannedPathPoints.push({ x: currentX, y: currentY });
                 }
             });
@@ -762,6 +798,7 @@ async def main():
             let current_angle_deg = parseFloat(startAngleInput.value);
             const toRadians = (deg) => deg * Math.PI / 180;
             const toDegrees = (rad) => rad * 180 / Math.PI;
+            const pivotY = parseFloat(pivotYInput.value);
 
             instructions.forEach((instruction, index) => {
                 if (instruction.type === 'move') {
@@ -776,6 +813,14 @@ async def main():
                     const speed = instruction.speed;
                     code += `    await ${rotateFunction}(${angle.toFixed(2)}, ${speed.toFixed(0)})\n`;
                     current_angle_deg += angle;
+                    
+                    const oldAngleRad = toRadians(current_angle_deg - angle);
+                    const newAngleRad = toRadians(current_angle_deg);
+                    const pivX = current_x + pivotY * Math.cos(oldAngleRad);
+                    const pivY = current_y - pivotY * Math.sin(oldAngleRad);
+
+                    current_x = pivX - pivotY * Math.cos(newAngleRad);
+                    current_y = pivY + pivotY * Math.sin(newAngleRad);
                 } else if (instruction.type === 'followPath') {
                     let pathCurrentX = current_x;
                     let pathCurrentY = current_y;
@@ -787,20 +832,30 @@ async def main():
                         const distance = Math.sqrt(dx * dx + dy * dy);
 
                         const targetAngleRad = Math.atan2(dx, dy);
+                        const oldAngleRad = toRadians(pathCurrentAngleDeg);
 
-                        let angleDiffRad = targetAngleRad - toRadians(pathCurrentAngleDeg);
+                        let angleDiffRad = targetAngleRad - oldAngleRad;
                         
                         while(angleDiffRad > Math.PI) angleDiffRad -= 2 * Math.PI;
                         while(angleDiffRad < -Math.PI) angleDiffRad += 2 * Math.PI;
                         
                         const angleDiffDeg = toDegrees(angleDiffRad);
+                        const newAngleRad = oldAngleRad + angleDiffRad;
+                        
+                        // Recalculate robot center based on pivot point rotation
+                        const pivX = pathCurrentX + pivotY * Math.cos(oldAngleRad);
+                        const pivY = pathCurrentY - pivotY * Math.sin(oldAngleRad);
+
+                        pathCurrentX = pivX - pivotY * Math.cos(newAngleRad);
+                        pathCurrentY = pivY + pivotY * Math.sin(newAngleRad);
+                        
+                        pathCurrentAngleDeg += angleDiffDeg;
 
                         code += `    await ${rotateFunction}(${angleDiffDeg.toFixed(2)}, ${1000})\n`;
                         code += `    await ${moveFunction}(${distance.toFixed(2)}, ${1000})\n`;
 
                         pathCurrentX = point.x;
                         pathCurrentY = point.y;
-                        pathCurrentAngleDeg += angleDiffDeg;
                     });
                     
                     current_x = pathCurrentX;
@@ -841,6 +896,7 @@ runloop.run(main())
             }
 
             const instruction = simulationInstructions[currentInstructionIndex];
+            const pivotY = parseFloat(pivotYInput.value);
 
             if (instruction.type === 'move') {
                 const remainingDistance = instruction.distance;
@@ -864,9 +920,27 @@ runloop.run(main())
                 const angleStepRad = angleStep * Math.PI / 180;
                 
                 if (Math.abs(angleLeft) > angleStep) {
+                    const oldAngleRad = robot.angle;
+                    const newAngleRad = oldAngleRad + Math.sign(angleLeft) * angleStepRad;
+                    
+                    const pivX = robot.x + pivotY * Math.cos(oldAngleRad);
+                    const pivY = robot.y - pivotY * Math.sin(oldAngleRad);
+
+                    robot.x = pivX - pivotY * Math.cos(newAngleRad);
+                    robot.y = pivY + pivotY * Math.sin(newAngleRad);
+
                     robot.angle += Math.sign(angleLeft) * angleStepRad;
                     instruction.angle -= Math.sign(angleLeft) * angleStep;
                 } else {
+                    const oldAngleRad = robot.angle;
+                    const newAngleRad = oldAngleRad + angleLeft * Math.PI / 180;
+
+                    const pivX = robot.x + pivotY * Math.cos(oldAngleRad);
+                    const pivY = robot.y - pivotY * Math.sin(oldAngleRad);
+
+                    robot.x = pivX - pivotY * Math.cos(newAngleRad);
+                    robot.y = pivY + pivotY * Math.sin(newAngleRad);
+
                     robot.angle += angleLeft * Math.PI / 180;
                     currentInstructionIndex++;
                 }
@@ -1269,6 +1343,7 @@ runloop.run(main())
                 startAngle: parseFloat(startAngleInput.value),
                 robotWidth: parseFloat(robotWidthInput.value),
                 robotHeight: parseFloat(robotHeightInput.value),
+                pivotY: parseFloat(pivotYInput.value),
                 pathColor: pathColorInput.value,
                 map2Opacity: parseFloat(map2OpacityInput.value),
                 moveFunctionName: moveFunctionNameInput.value,
@@ -1315,6 +1390,7 @@ runloop.run(main())
                     startAngleInput.value = loadedData.startAngle || 0;
                     robotWidthInput.value = loadedData.robotWidth || 12.5;
                     robotHeightInput.value = loadedData.robotHeight || 18;
+                    pivotYInput.value = loadedData.pivotY || 0;
                     pathColorInput.value = loadedData.pathColor || '#22c55e';
                     map2OpacityInput.value = loadedData.map2Opacity || 1;
                     moveFunctionNameInput.value = loadedData.moveFunctionName || 'move';
@@ -1574,6 +1650,15 @@ runloop.run(main())
             calculatePlannedPath();
         });
         robotHeightInput.addEventListener('change', () => {
+            draw();
+            calculatePlannedPath();
+        });
+        pivotYInput.addEventListener('change', () => {
+            const h = parseFloat(robotHeightInput.value);
+            const pivotY = parseFloat(pivotYInput.value);
+            if (Math.abs(pivotY) > h/2) {
+                pivotYInput.value = h/2 * Math.sign(pivotY);
+            }
             draw();
             calculatePlannedPath();
         });
