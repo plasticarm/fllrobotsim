@@ -12,8 +12,7 @@
         }
         canvas {
             border: 2px solid #1d1d1d;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);            
             background-color: #1d1d1d;
             cursor: grab;
         }
@@ -120,24 +119,12 @@
                 <div class="p-6 bg-gray-800 rounded-lg shadow-sm">
                     <h2 class="text-xl font-semibold mb-4 text-gray-200">Add Command</h2>
                     
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label for="waypointX" class="block text-sm font-medium text-gray-200">Waypoint X (cm)</label>
-                            <input type="number" id="waypointX" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
-                        </div>
-                        <div>
-                            <label for="waypointY" class="block text-sm font-medium text-gray-200">Waypoint Y (cm)</label>
-                            <input type="number" id="waypointY" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
-                        </div>
-                    </div>
-                    <button id="addWaypointBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
-                        Add Waypoint
-                    </button>
-                    
                     <div class="grid grid-cols-2 gap-4 my-4">
                         <div>
                             <label for="moveDistance" class="block text-sm font-medium text-gray-200">Move Distance (cm)</label>
-                            <input type="number" id="moveDistance" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            <input type="number" id="moveDistance" value="50.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            <label for="moveSpeed" class="block text-sm font-medium text-gray-200 mt-2">Move Speed (0-1000)</label>
+                            <input type="number" id="moveSpeed" value="1000" min="0" max="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                         <button id="addMoveBtn" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                             Add Move
@@ -147,10 +134,21 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label for="rotateAngle" class="block text-sm font-medium text-gray-200">Rotate Angle (deg)</label>
-                            <input type="number" id="rotateAngle" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            <input type="number" id="rotateAngle" value="90.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            <label for="rotateSpeed" class="block text-sm font-medium text-gray-200 mt-2">Rotate Speed (0-1000)</label>
+                            <input type="number" id="rotateSpeed" value="500" min="0" max="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                         <button id="addRotateBtn" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                             Add Rotate
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 my-4">
+                        <button id="addMotor1Btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                            Add Motor 1 Rotation
+                        </button>
+                        <button id="addMotor2Btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                            Add Motor 2 Rotation
                         </button>
                     </div>
 
@@ -170,7 +168,7 @@
                 <!-- Simulation Controls and Path Color -->
                 <div class="p-6 bg-gray-800 rounded-lg shadow-sm flex items-center justify-between">
                     <div>
-                        <label for="pathColor" class="block text-sm font-medium text-gray-200">Path Color</label>
+                        <label for="pathColor" class="block text-sm font-medium text-gray-200">Robot Path Color</label>
                         <input type="color" id="pathColor" value="#22c55e" class="mt-1 h-10 w-10 rounded-full border-gray-300 shadow-sm">
                     </div>
                 </div>
@@ -182,11 +180,22 @@
                     <button id="startSimulationBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md shadow-lg transition duration-300 transform hover:scale-105 w-[20%]">
                         Start Simulation
                     </button>
-                    <div id="toolbar" class="w-[80%] flex justify-start items-center gap-4 p-4 rounded-lg bg-gray-800 shadow-sm">
-                        <button id="measureBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                     <button id="stopSimulationBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-md shadow-lg transition duration-300 transform hover:scale-105 w-[20%]">
+                        Stop
+                    </button>
+                    <div id="toolbar" class="w-[60%] flex justify-start items-center gap-4 p-4 rounded-lg bg-gray-800 shadow-sm">
+                        <button id="measureBtn" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                             Measure
                         </button>
-                        <!-- Other tools would go here -->
+                         <button id="createPathBtn" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                            Create Path
+                        </button>
+                        <button id="saveBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                            Save
+                        </button>
+                        <button id="loadBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                            Load
+                        </button>
                     </div>
                 </div>
                 
@@ -201,6 +210,14 @@
                         <div>
                             <label for="rotateFunctionName" class="block text-sm font-medium text-gray-200">Rotate Function Name</label>
                             <input type="text" id="rotateFunctionName" value="rotate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                        </div>
+                         <div>
+                            <label for="motor1FunctionName" class="block text-sm font-medium text-gray-200">Motor 1 Function Name</label>
+                            <input type="text" id="motor1FunctionName" value="rotateLeftArm" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                        </div>
+                        <div>
+                            <label for="motor2FunctionName" class="block text-sm font-medium text-gray-200">Motor 2 Function Name</label>
+                            <input type="text" id="motor2FunctionName" value="rotateRightArm" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                     </div>
                 </div>
@@ -221,6 +238,7 @@
             </div>
         </div>
     </div>
+    <input type="file" id="fileInput" accept=".json" class="hidden">
 
     <script>
         // DOM element references
@@ -232,14 +250,16 @@
         const startAngleInput = document.getElementById('startAngle');
         const robotWidthInput = document.getElementById('robotWidth');
         const robotHeightInput = document.getElementById('robotHeight');
-        const waypointXInput = document.getElementById('waypointX');
-        const waypointYInput = document.getElementById('waypointY');
         const moveDistanceInput = document.getElementById('moveDistance');
         const rotateAngleInput = document.getElementById('rotateAngle');
-        const addWaypointBtn = document.getElementById('addWaypointBtn');
+        const moveSpeedInput = document.getElementById('moveSpeed');
+        const rotateSpeedInput = document.getElementById('rotateSpeed');
         const addMoveBtn = document.getElementById('addMoveBtn');
         const addRotateBtn = document.getElementById('addRotateBtn');
+        const addMotor1Btn = document.getElementById('addMotor1Btn');
+        const addMotor2Btn = document.getElementById('addMotor2Btn');
         const startSimulationBtn = document.getElementById('startSimulationBtn');
+        const stopSimulationBtn = document.getElementById('stopSimulationBtn');
         const resetBtn = document.getElementById('resetBtn');
         const instructionList = document.getElementById('instructionList');
         const codeOutput = document.getElementById('codeOutput');
@@ -248,7 +268,13 @@
         const pathColorInput = document.getElementById('pathColor');
         const moveFunctionNameInput = document.getElementById('moveFunctionName');
         const rotateFunctionNameInput = document.getElementById('rotateFunctionName');
+        const motor1FunctionNameInput = document.getElementById('motor1FunctionName');
+        const motor2FunctionNameInput = document.getElementById('motor2FunctionName');
         const measureBtn = document.getElementById('measureBtn');
+        const createPathBtn = document.getElementById('createPathBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const loadBtn = document.getElementById('loadBtn');
+        const fileInput = document.getElementById('fileInput');
 
         // Image for the background
         const backgroundImage = new Image();
@@ -275,16 +301,31 @@
         let currentInstructionIndex = 0;
         let isSimulating = false;
         let pathHistory = [];
+        let plannedPathPoints = [];
         let dragSrcEl = null;
 
         // Drag and drop state for the robot
         let isDraggingRobot = false;
-        let isDraggingWaypoint = false;
-        let draggedWaypointIndex = -1;
+
+        // Measuring tool state
         let isMeasuring = false;
         let measurePoints = [];
         let isDraggingMeasurePoint = false;
         let draggedMeasurePointIndex = -1;
+        
+        // Path creation state
+        let isCreatingPath = false;
+        let pathPoints = [];
+        let isDraggingPathPoint = false;
+        let draggedPathPointIndex = -1;
+        
+        // Motor commands simulation state
+        let motorPauseStartTime = null;
+        const MOTOR_PAUSE_DURATION = 1000; // 1 second in milliseconds
+
+        // Global helper functions
+        const toRadians = (deg) => deg * Math.PI / 180;
+        const toDegrees = (rad) => rad * 180 / Math.PI;
 
         /**
          * Calculates the correct canvas dimensions to maintain aspect ratio within its parent container.
@@ -468,111 +509,65 @@
         }
 
         /**
-         * Draws all instructions and the planned path.
+         * Draws the entire planned path as a dashed line.
          */
-        function drawInstructions() {
-            // Draw planned path (dashed)
-            if (instructions.length > 0) {
-                ctx.strokeStyle = '#9ca3af';
-                ctx.setLineDash([5, 5]); // Dashed line
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                const startPos = toCanvasCoords(startXInput.value, startYInput.value);
-                ctx.moveTo(startPos.x, startPos.y);
-
-                let current_x = parseFloat(startXInput.value);
-                let current_y = parseFloat(startYInput.value);
-                let current_angle_rad = parseFloat(startAngleInput.value) * Math.PI / 180;
-
-                instructions.forEach(instruction => {
-                    let next_x = current_x;
-                    let next_y = current_y;
-                    
-                    if (instruction.type === 'waypoint') {
-                        const deltaX = instruction.x - current_x;
-                        const deltaY = instruction.y - current_y;
-                        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-                        const targetAngleRad = Math.atan2(deltaY, deltaX);
-                        current_angle_rad = targetAngleRad;
-                        next_x = instruction.x;
-                        next_y = instruction.y;
-                    } else if (instruction.type === 'move') {
-                        next_x += instruction.distance * Math.sin(current_angle_rad);
-                        next_y += instruction.distance * Math.cos(current_angle_rad);
-                    } else if (instruction.type === 'rotate') {
-                         current_angle_rad += instruction.angle * Math.PI / 180;
-                    }
-                    
-                    const pos = toCanvasCoords(next_x, next_y);
-                    ctx.lineTo(pos.x, pos.y);
-                    current_x = next_x;
-                    current_y = next_y;
-                });
-                ctx.stroke();
-                ctx.setLineDash([]); // Reset line dash
+        function drawPlannedPath() {
+            if (plannedPathPoints.length < 2) return;
+            ctx.strokeStyle = '#6b7280'; // Grey color
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]); // Dashed line
+            ctx.beginPath();
+            const startPos = toCanvasCoords(plannedPathPoints[0].x, plannedPathPoints[0].y);
+            ctx.moveTo(startPos.x, startPos.y);
+            
+            for (let i = 1; i < plannedPathPoints.length; i++) {
+                const pos = toCanvasCoords(plannedPathPoints[i].x, plannedPathPoints[i].y);
+                ctx.lineTo(pos.x, pos.y);
             }
-
-            // Draw waypoints
-            instructions.forEach(instruction => {
-                if (instruction.type === 'waypoint') {
-                    const pos = toCanvasCoords(instruction.x, instruction.y);
-                    ctx.fillStyle = '#ef4444';
-                    ctx.beginPath();
-                    ctx.arc(pos.x, pos.y, 5, 0, 2 * Math.PI);
-                    ctx.fill();
-                }
-            });
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset line dash to solid
         }
 
         /**
-         * Draws the measuring points and the distance between them.
+         * Draws lines, distances, and angles for a set of points.
+         * @param {Array<Object>} points - The array of points to draw.
+         * @param {string} color - The color for the lines and text.
          */
-        function drawMeasurePoints() {
-            if (measurePoints.length === 0) return;
-
-            // Draw points
-            measurePoints.forEach(point => {
-                const pos = toCanvasCoords(point.x, point.y);
-                ctx.fillStyle = '#facc15';
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 5, 0, 2 * Math.PI);
-                ctx.fill();
-            });
-
+        function drawMeasurements(points, color) {
+            if (points.length < 2) return;
+        
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.font = '12px Inter';
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+        
             // Draw lines and distances
-            if (measurePoints.length > 1) {
-                ctx.strokeStyle = '#facc15';
-                ctx.lineWidth = 2;
-                ctx.font = '12px Inter';
-                ctx.fillStyle = '#facc15';
-                ctx.textAlign = 'center';
+            for (let i = 0; i < points.length - 1; i++) {
+                const start = toCanvasCoords(points[i].x, points[i].y);
+                const end = toCanvasCoords(points[i+1].x, points[i+1].y);
                 
-                for (let i = 0; i < measurePoints.length - 1; i++) {
-                    const start = toCanvasCoords(measurePoints[i].x, measurePoints[i].y);
-                    const end = toCanvasCoords(measurePoints[i+1].x, measurePoints[i+1].y);
-                    
-                    // Draw line
-                    ctx.beginPath();
-                    ctx.moveTo(start.x, start.y);
-                    ctx.lineTo(end.x, end.y);
-                    ctx.stroke();
-
-                    // Calculate and draw distance text
-                    const dx = measurePoints[i+1].x - measurePoints[i].x;
-                    const dy = measurePoints[i+1].y - measurePoints[i].y;
-                    const distance = Math.sqrt(dx*dx + dy*dy);
-                    const midX = (start.x + end.x) / 2;
-                    const midY = (start.y + end.y) / 2;
-                    ctx.fillText(`${distance.toFixed(1)} cm`, midX, midY - 10);
-                }
+                // Draw line
+                ctx.beginPath();
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.stroke();
+        
+                // Calculate and draw distance text
+                const dx = points[i+1].x - points[i].x;
+                const dy = points[i+1].y - points[i].y;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                const midX = (start.x + end.x) / 2;
+                const midY = (start.y + end.y) / 2;
+                ctx.fillText(`${distance.toFixed(1)} cm`, midX, midY - 10);
             }
-
-            // Draw angle arcs and text for all angles
-            if (measurePoints.length >= 3) {
-                for (let i = 0; i < measurePoints.length - 2; i++) {
-                    const p1 = toCanvasCoords(measurePoints[i].x, measurePoints[i].y);
-                    const p2 = toCanvasCoords(measurePoints[i+1].x, measurePoints[i+1].y);
-                    const p3 = toCanvasCoords(measurePoints[i+2].x, measurePoints[i+2].y);
+        
+            // Draw angle arcs and text
+            if (points.length >= 3) {
+                for (let i = 0; i < points.length - 2; i++) {
+                    const p1 = toCanvasCoords(points[i].x, points[i].y);
+                    const p2 = toCanvasCoords(points[i+1].x, points[i+1].y);
+                    const p3 = toCanvasCoords(points[i+2].x, points[i+2].y);
                     
                     const v1 = { x: p1.x - p2.x, y: p1.y - p2.y };
                     const v2 = { x: p3.x - p2.x, y: p3.y - p2.y };
@@ -585,13 +580,19 @@
                     // Normalize to [-pi, pi]
                     while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
                     while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-
-                    ctx.strokeStyle = '#facc15';
+                    
+                    ctx.strokeStyle = color;
                     ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.arc(p2.x, p2.y, 20, angle1, angle2);
+                    
+                    // Draw the shorter arc
+                    if (Math.abs(angleDiff) > Math.PI) {
+                        ctx.arc(p2.x, p2.y, 20, angle1, angle1 + (2*Math.PI-Math.abs(angleDiff)) * Math.sign(angleDiff));
+                    } else {
+                        ctx.arc(p2.x, p2.y, 20, angle1, angle2);
+                    }
                     ctx.stroke();
-
+        
                     const angleDeg = Math.abs(angleDiff) * 180 / Math.PI;
                     const angleTextPos = {
                         x: p2.x + 20 * Math.cos((angle1 + angle2) / 2),
@@ -603,14 +604,86 @@
         }
 
         /**
+         * Draws the measuring points and the distance/angle between them.
+         */
+        function drawMeasurePoints() {
+            measurePoints.forEach(point => {
+                const pos = toCanvasCoords(point.x, point.y);
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 5, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+
+            drawMeasurements(measurePoints, '#facc15');
+        }
+
+        /**
+         * Draws the path points.
+         */
+        function drawPathPoints() {
+            pathPoints.forEach(point => {
+                const pos = toCanvasCoords(point.x, point.y);
+                ctx.fillStyle = '#800080'; // Purple
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 5, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+            drawMeasurements(pathPoints, '#800080');
+        }
+
+        /**
          * Main drawing function.
          */
         function draw() {
             drawTable();
+            drawPlannedPath();
             drawPathHistory();
-            drawInstructions();
             drawMeasurePoints();
+            drawPathPoints();
             drawRobot();
+        }
+
+        /**
+         * Calculates the planned path based on all instructions.
+         */
+        function calculatePlannedPath() {
+            plannedPathPoints = [];
+            let currentX = parseFloat(startXInput.value);
+            let currentY = parseFloat(startYInput.value);
+            let currentAngleRad = parseFloat(startAngleInput.value) * Math.PI / 180;
+
+            plannedPathPoints.push({ x: currentX, y: currentY });
+
+            instructions.forEach(instruction => {
+                if (instruction.type === 'move') {
+                    const distance = instruction.distance;
+                    currentX += distance * Math.sin(currentAngleRad);
+                    currentY += distance * Math.cos(currentAngleRad);
+                    plannedPathPoints.push({ x: currentX, y: currentY });
+                } else if (instruction.type === 'rotate') {
+                    currentAngleRad += instruction.angle * Math.PI / 180;
+                } else if (instruction.type === 'followPath') {
+                    // Update angle and position for each point in the path
+                    instruction.points.forEach(point => {
+                        const dx = point.x - currentX;
+                        const dy = point.y - currentY;
+                        
+                        // Calculate the new angle to face the next point
+                        const targetAngleRad = Math.atan2(dx, dy);
+                        currentAngleRad = targetAngleRad;
+
+                        currentX = point.x;
+                        currentY = point.y;
+                        plannedPathPoints.push({ x: currentX, y: currentY });
+                    });
+                } else if (instruction.type === 'motor1' || instruction.type === 'motor2') {
+                    // Motor commands don't change the robot's position or orientation
+                    // The planned path simply stays at the same point
+                    plannedPathPoints.push({ x: currentX, y: currentY });
+                }
+            });
+            draw();
         }
 
         /**
@@ -621,80 +694,105 @@
             const startX = parseFloat(startXInput.value).toFixed(2);
             const startY = parseFloat(startYInput.value).toFixed(2);
             const startAngle = parseFloat(startAngleInput.value).toFixed(2);
-            const defaultSpeed = 100;
             const moveFunction = moveFunctionNameInput.value || 'move';
             const rotateFunction = rotateFunctionNameInput.value || 'rotate';
+            const motor1Function = motor1FunctionNameInput.value || 'rotateLeftArm';
+            const motor2Function = motor2FunctionNameInput.value || 'rotateRightArm';
 
             let code = `
 # This code was automatically generated for mission: ${missionName}
-# It assumes a library named 'robot_lib' with asynchronous commands for movement and rotation.
+# It assumes a library named '*' with asynchronous commands for movement and rotation.
+"""
+Available functions in the common library:
 
-import math
-import asyncio
-import time
+setupMotors()
+resetYaw()
+degreesForDistance(distance_cm)
+drive(distance, speed)
+rotateRightArm(degrees, speed)
+rotateLeftArm(degrees, speed)
+rotateCenterArm(degrees, speed)
+resetArmRotation()
+turn_done()
+rotateDegrees(degrees, speed)
+spin_turn(robot_degrees, motor_speed)
+pivot_turn(robot_degrees, motor_speed)
+all_done()
+beep(frequency, duration)
+"""
 
-# A placeholder library for robot commands. Replace with your actual robot control library.
-async def ${moveFunction}(distance_cm, speed):
-    """Asynchronously moves the robot forward by the specified distance in cm at a given speed."""
-    print(f"Moving forward by {distance_cm:.2f} cm at speed {speed}.")
-    await asyncio.sleep(abs(distance_cm) / speed)
-    
-async def ${rotateFunction}(angle_deg, speed):
-    """Asynchronously rotates the robot by a specific angle in degrees (positive for left, negative for right) at a given speed."""
-    print(f"Rotating by {angle_deg:.2f} degrees at speed {speed}.")
-    await asyncio.sleep(abs(angle_deg) / speed)
+from common import *
+import runloop
 
 async def main():
-    print(f"Starting mission: ${missionName}")
-    print(f"Initial Position: ({startX}, {startY}) cm")
-    print(f"Initial Angle: {startAngle} degrees")
-    print("---------------------------------------")
+    # Starting mission: ${missionName}
+    # Initial Position: ${startX}, ${startY} cm
+    # Initial Angle: ${startAngle} degrees   
+    # Initialize the motor pair for wheels and save motor positions. Do this every time.
+    await init()
 
 `;
             let current_x = parseFloat(startXInput.value);
             let current_y = parseFloat(startYInput.value);
             let current_angle_deg = parseFloat(startAngleInput.value);
+            const toRadians = (deg) => deg * Math.PI / 180;
+            const toDegrees = (rad) => rad * 180 / Math.PI;
 
-            instructions.forEach((instruction) => {
-                if (instruction.type === 'waypoint') {
-                    const deltaX = instruction.x - current_x;
-                    const deltaY = instruction.y - current_y;
-                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-                    const targetAngleRad = Math.atan2(deltaY, deltaX);
-                    const targetAngleDeg = targetAngleRad * 180 / Math.PI;
-                    let angleDiff = targetAngleDeg - current_angle_deg;
-                    if (angleDiff > 180) angleDiff -= 360;
-                    if (angleDiff < -180) angleDiff += 360;
-                    
-                    if (Math.abs(angleDiff) > 1) { // A small tolerance for floating point errors
-                        code += `    await ${rotateFunction}(${angleDiff.toFixed(2)}, ${defaultSpeed})\n`;
-                        current_angle_deg += angleDiff;
-                    }
-                    
-                    code += `    await ${moveFunction}(${distance.toFixed(2)}, ${defaultSpeed})\n`;
-                    current_x = instruction.x;
-                    current_y = instruction.y;
-                    current_angle_deg = targetAngleDeg;
-
-                } else if (instruction.type === 'move') {
+            instructions.forEach((instruction, index) => {
+                if (instruction.type === 'move') {
                     const distance = instruction.distance;
-                    code += `    await ${moveFunction}(${distance.toFixed(2)}, ${defaultSpeed})\n`;
-                    current_x += distance * Math.sin(current_angle_deg * Math.PI / 180);
-                    current_y += distance * Math.cos(current_angle_deg * Math.PI / 180);
-
+                    const speed = instruction.speed;
+                    code += `    await ${moveFunction}(${distance.toFixed(2)}, ${speed.toFixed(0)})\n`;
+                    const angleRad = toRadians(current_angle_deg);
+                    current_x += distance * Math.sin(angleRad);
+                    current_y += distance * Math.cos(angleRad);
                 } else if (instruction.type === 'rotate') {
                     const angle = instruction.angle;
-                    code += `    await ${rotateFunction}(${angle.toFixed(2)}, ${defaultSpeed})\n`;
+                    const speed = instruction.speed;
+                    code += `    await ${rotateFunction}(${angle.toFixed(2)}, ${speed.toFixed(0)})\n`;
                     current_angle_deg += angle;
+                } else if (instruction.type === 'followPath') {
+                    let pathCurrentX = current_x;
+                    let pathCurrentY = current_y;
+                    let pathCurrentAngleDeg = current_angle_deg;
+
+                    instruction.points.forEach((point, pointIndex) => {
+                        const dx = point.x - pathCurrentX;
+                        const dy = point.y - pathCurrentY;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        const targetAngleRad = Math.atan2(dx, dy);
+
+                        let angleDiffRad = targetAngleRad - toRadians(pathCurrentAngleDeg);
+                        
+                        while(angleDiffRad > Math.PI) angleDiffRad -= 2 * Math.PI;
+                        while(angleDiffRad < -Math.PI) angleDiffRad += 2 * Math.PI;
+                        
+                        const angleDiffDeg = toDegrees(angleDiffRad);
+
+                        code += `    await ${rotateFunction}(${angleDiffDeg.toFixed(2)}, ${1000})\n`;
+                        code += `    await ${moveFunction}(${distance.toFixed(2)}, ${1000})\n`;
+
+                        pathCurrentX = point.x;
+                        pathCurrentY = point.y;
+                        pathCurrentAngleDeg += angleDiffDeg;
+                    });
+                    
+                    current_x = pathCurrentX;
+                    current_y = pathCurrentY;
+                    current_angle_deg = pathCurrentAngleDeg;
+                } else if (instruction.type === 'motor1') {
+                    code += `    await ${motor1Function}(${instruction.angle.toFixed(0)}, ${instruction.speed.toFixed(0)})\n`;
+                } else if (instruction.type === 'motor2') {
+                    code += `    await ${motor2Function}(${instruction.angle.toFixed(0)}, ${instruction.speed.toFixed(0)})\n`;
                 }
             });
             
             code += `
-    print("---------------------------------------")
-    print("Mission complete. All instructions executed.")
+    # reset the arms before finishing so they are ready to go again.
+    await resetArmRotation()
 
-if __name__ == "__main__":
-    asyncio.run(main())
+runloop.run(main())
 `;
             codeOutput.textContent = code;
         }
@@ -702,7 +800,7 @@ if __name__ == "__main__":
         /**
          * The main simulation loop.
          */
-        function simulateMovement() {
+        function simulateMovement(timestamp) {
             if (!isSimulating) {
                 return;
             }
@@ -719,60 +817,25 @@ if __name__ == "__main__":
 
             const instruction = simulationInstructions[currentInstructionIndex];
 
-            if (instruction.type === 'waypoint') {
-                const targetWaypoint = {
-                    x: instruction.x,
-                    y: instruction.y
-                };
-                
-                // Calculate vector to target
-                const dx = targetWaypoint.x - robot.x;
-                const dy = targetWaypoint.y - robot.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                // Calculate target angle
-                const targetAngle = Math.atan2(dy, dx);
-                
-                // Update robot's angle gradually
-                const angleDiff = targetAngle - robot.angle;
-                const angleStep = 0.05; // radians per frame
-                
-                // If the robot is not at the target, move it
-                if (distance > 0.5) { // Use a small tolerance
-                    // Rotate towards the target angle
-                    if (Math.abs(angleDiff) > angleStep) {
-                        robot.angle += Math.sign(angleDiff) * angleStep;
-                    } else {
-                        robot.angle = targetAngle;
-                    }
-                    
-                    // Move the robot forward based on its angle
-                    const moveStep = robot.speed / (canvas.width / (TABLE_WIDTH_MM / 10));
-                    robot.x += Math.sin(robot.angle) * moveStep;
-                    robot.y += Math.cos(robot.angle) * moveStep;
-                } else {
-                    // Robot is close enough, snap to target and move to next instruction
-                    robot.x = targetWaypoint.x;
-                    robot.y = targetWaypoint.y;
-                    currentInstructionIndex++;
-                }
-            } else if (instruction.type === 'move') {
+            if (instruction.type === 'move') {
                 const remainingDistance = instruction.distance;
-                const moveStep = robot.speed / (canvas.width / (TABLE_WIDTH_MM / 10));
+                const moveStep = instruction.speed / 1000 * 5; // 5 cm/s at speed 1000
                 
                 if (Math.abs(remainingDistance) > moveStep) {
                     const moveDirection = Math.sign(remainingDistance);
-                    robot.x += Math.sin(robot.angle) * moveStep * moveDirection;
-                    robot.y += Math.cos(robot.angle) * moveStep * moveDirection;
+                    const angleRad = robot.angle;
+                    robot.x += Math.sin(angleRad) * moveStep * moveDirection;
+                    robot.y += Math.cos(angleRad) * moveStep * moveDirection;
                     instruction.distance -= moveStep * moveDirection;
                 } else {
-                    robot.x += Math.sin(robot.angle) * remainingDistance;
-                    robot.y += Math.cos(robot.angle) * remainingDistance;
+                    const angleRad = robot.angle;
+                    robot.x += Math.sin(angleRad) * remainingDistance;
+                    robot.y += Math.cos(angleRad) * remainingDistance;
                     currentInstructionIndex++;
                 }
             } else if (instruction.type === 'rotate') {
                 const angleLeft = instruction.angle;
-                const angleStep = 2; // degrees per frame
+                const angleStep = instruction.speed / 500 * 2; // 2 deg/frame at speed 500
                 const angleStepRad = angleStep * Math.PI / 180;
                 
                 if (Math.abs(angleLeft) > angleStep) {
@@ -781,6 +844,71 @@ if __name__ == "__main__":
                 } else {
                     robot.angle += angleLeft * Math.PI / 180;
                     currentInstructionIndex++;
+                }
+            } else if (instruction.type === 'followPath') {
+                const path = instruction.points;
+                let pathIndex = instruction.pathIndex || 0;
+                
+                if (pathIndex >= path.length) {
+                    currentInstructionIndex++;
+                    return;
+                }
+
+                const targetWaypoint = path[pathIndex];
+                
+                if (!instruction.simulationState) {
+                    instruction.simulationState = 'rotate';
+                    instruction.pathIndex = pathIndex;
+                }
+
+                if (instruction.simulationState === 'rotate') {
+                    const dx = targetWaypoint.x - robot.x;
+                    const dy = targetWaypoint.y - robot.y;
+                    const targetAngle = Math.atan2(dx, dy);
+                    
+                    let angleDiff = targetAngle - robot.angle;
+                    
+                    while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                    while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+                    if (Math.abs(angleDiff) > 0.01) {
+                        const rotationStep = Math.sign(angleDiff) * 0.01;
+                        robot.angle += rotationStep;
+                    } else {
+                        robot.angle += angleDiff;
+                        instruction.simulationState = 'move';
+                    }
+                } else if (instruction.simulationState === 'move') {
+                    const dx = targetWaypoint.x - robot.x;
+                    const dy = targetWaypoint.y - robot.y;
+                    const distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distanceToTarget > 0.01) {
+                        const moveStep = robot.speed;
+                        const moveFactor = Math.min(moveStep, distanceToTarget) / distanceToTarget;
+                        
+                        robot.x += dx * moveFactor;
+                        robot.y += dy * moveFactor;
+                    } else {
+                        robot.x = targetWaypoint.x;
+                        robot.y = targetWaypoint.y;
+                        
+                        instruction.pathIndex++;
+                        if (instruction.pathIndex < path.length) {
+                            instruction.simulationState = 'rotate'; // Reset state for the next segment
+                        } else {
+                            currentInstructionIndex++;
+                        }
+                    }
+                }
+            } else if (instruction.type === 'motor1' || instruction.type === 'motor2') {
+                if (motorPauseStartTime === null) {
+                    motorPauseStartTime = timestamp;
+                }
+                const elapsedTime = timestamp - motorPauseStartTime;
+                if (elapsedTime >= MOTOR_PAUSE_DURATION) {
+                    currentInstructionIndex++;
+                    motorPauseStartTime = null;
                 }
             }
             draw();
@@ -799,12 +927,16 @@ if __name__ == "__main__":
                 listItem.dataset.index = index;
                 
                 let text = `Instruction ${index + 1}: `;
-                if (instruction.type === 'waypoint') {
-                    text += `Waypoint (${instruction.x.toFixed(2)}, ${instruction.y.toFixed(2)}) cm`;
-                } else if (instruction.type === 'move') {
-                    text += `Move ${instruction.distance.toFixed(2)} cm`;
+                if (instruction.type === 'move') {
+                    text += `Move ${instruction.distance.toFixed(2)} cm @ ${instruction.speed.toFixed(0)}`;
                 } else if (instruction.type === 'rotate') {
-                    text += `Rotate ${instruction.angle.toFixed(2)} degrees`;
+                    text += `Rotate ${instruction.angle.toFixed(2)} deg @ ${instruction.speed.toFixed(0)}`;
+                } else if (instruction.type === 'followPath') {
+                    text += `Follow Path (${instruction.points.length} points)`;
+                } else if (instruction.type === 'motor1') {
+                    text += `Motor 1 Rot: 90 deg @ 500`;
+                } else if (instruction.type === 'motor2') {
+                    text += `Motor 2 Rot: 90 deg @ 500`;
                 }
                 
                 listItem.innerHTML = `
@@ -818,6 +950,7 @@ if __name__ == "__main__":
                 instructionList.appendChild(listItem);
             });
             addDragListeners();
+            calculatePlannedPath();
         }
 
         function addDragListeners() {
@@ -874,6 +1007,7 @@ if __name__ == "__main__":
         function handleDragEnd(e) {
             this.style.opacity = '1';
             dragSrcEl = null;
+            calculatePlannedPath();
         }
 
         function handleEditInstruction(e) {
@@ -882,18 +1016,11 @@ if __name__ == "__main__":
             const listItem = e.target.closest('li');
             
             let formHtml = '';
-            if (instruction.type === 'waypoint') {
-                formHtml = `
-                    <form class="edit-form flex items-center gap-2" data-index="${index}">
-                        <input type="number" name="x" value="${instruction.x.toFixed(2)}" step="0.01">
-                        <input type="number" name="y" value="${instruction.y.toFixed(2)}" step="0.01">
-                        <button type="submit">Save</button>
-                    </form>
-                `;
-            } else if (instruction.type === 'move') {
+            if (instruction.type === 'move') {
                 formHtml = `
                     <form class="edit-form flex items-center gap-2" data-index="${index}">
                         <input type="number" name="distance" value="${instruction.distance.toFixed(2)}" step="0.01">
+                        <input type="number" name="speed" value="${instruction.speed.toFixed(0)}" step="10">
                         <button type="submit">Save</button>
                     </form>
                 `;
@@ -901,9 +1028,25 @@ if __name__ == "__main__":
                 formHtml = `
                     <form class="edit-form flex items-center gap-2" data-index="${index}">
                         <input type="number" name="angle" value="${instruction.angle.toFixed(2)}" step="0.01">
+                        <input type="number" name="speed" value="${instruction.speed.toFixed(0)}" step="10">
                         <button type="submit">Save</button>
                     </form>
                 `;
+            } else if (instruction.type === 'followPath') {
+                 // Re-enable the path creation tool for editing
+                isCreatingPath = true;
+                pathPoints = instruction.points;
+                createPathBtn.textContent = 'Finish Path';
+                createPathBtn.classList.remove('bg-purple-500');
+                createPathBtn.classList.add('bg-purple-700');
+                instructions.splice(index, 1); // Temporarily remove the instruction from the list
+                renderInstructionList();
+                draw();
+                return;
+            } else if (instruction.type === 'motor1' || instruction.type === 'motor2') {
+                 // Do not allow editing these commands for now
+                alert('Motor rotation commands are not editable in the simulator. You can delete and re-add them.');
+                return;
             }
             
             listItem.innerHTML = formHtml;
@@ -915,17 +1058,17 @@ if __name__ == "__main__":
             const index = e.target.dataset.index;
             const instruction = instructions[index];
 
-            if (instruction.type === 'waypoint') {
-                instruction.x = parseFloat(e.target.elements.x.value);
-                instruction.y = parseFloat(e.target.elements.y.value);
-            } else if (instruction.type === 'move') {
+            if (instruction.type === 'move') {
                 instruction.distance = parseFloat(e.target.elements.distance.value);
+                instruction.speed = parseInt(e.target.elements.speed.value);
             } else if (instruction.type === 'rotate') {
                 instruction.angle = parseFloat(e.target.elements.angle.value);
+                instruction.speed = parseInt(e.target.elements.speed.value);
             }
             
             renderInstructionList();
             draw();
+            calculatePlannedPath();
         }
 
         function handleDeleteInstruction(e) {
@@ -933,28 +1076,18 @@ if __name__ == "__main__":
             instructions.splice(index, 1);
             renderInstructionList();
             draw();
+            calculatePlannedPath();
         }
 
-
-        /**
-         * Adds a waypoint from user input.
-         */
-        function handleAddWaypoint() {
-            const x = parseFloat(waypointXInput.value);
-            const y = parseFloat(waypointYInput.value);
-            if (isNaN(x) || isNaN(y)) return;
-            instructions.push({ type: 'waypoint', x, y });
-            renderInstructionList();
-            draw();
-        }
 
         /**
          * Adds a move command from user input.
          */
         function handleAddMove() {
             const distance = parseFloat(moveDistanceInput.value);
-            if (isNaN(distance)) return;
-            instructions.push({ type: 'move', distance });
+            const speed = parseInt(moveSpeedInput.value);
+            if (isNaN(distance) || isNaN(speed)) return;
+            instructions.push({ type: 'move', distance, speed });
             renderInstructionList();
         }
         
@@ -963,8 +1096,25 @@ if __name__ == "__main__":
          */
         function handleAddRotate() {
             const angle = parseFloat(rotateAngleInput.value);
-            if (isNaN(angle)) return;
-            instructions.push({ type: 'rotate', angle });
+            const speed = parseInt(rotateSpeedInput.value);
+            if (isNaN(angle) || isNaN(speed)) return;
+            instructions.push({ type: 'rotate', angle, speed });
+            renderInstructionList();
+        }
+
+        /**
+         * Adds a motor 1 rotation command.
+         */
+        function handleAddMotor1() {
+            instructions.push({ type: 'motor1', angle: 90, speed: 500 });
+            renderInstructionList();
+        }
+
+        /**
+         * Adds a motor 2 rotation command.
+         */
+        function handleAddMotor2() {
+            instructions.push({ type: 'motor2', angle: 90, speed: 500 });
             renderInstructionList();
         }
 
@@ -985,6 +1135,16 @@ if __name__ == "__main__":
             startSimulationBtn.textContent = 'Start Simulation';
             instructionList.innerHTML = '';
             codeOutput.textContent = 'Your generated code will appear here.';
+            measurePoints = [];
+            pathPoints = [];
+            isCreatingPath = false;
+            isMeasuring = false;
+            motorPauseStartTime = null;
+            measureBtn.classList.remove('bg-yellow-700');
+            measureBtn.classList.add('bg-yellow-500');
+            createPathBtn.classList.remove('bg-purple-700');
+            createPathBtn.classList.add('bg-purple-500');
+            calculatePlannedPath();
             draw();
         }
 
@@ -1012,7 +1172,24 @@ if __name__ == "__main__":
             isSimulating = true;
             startSimulationBtn.textContent = 'Simulating...';
             codeOutput.textContent = 'Generating code...';
-            simulateMovement();
+            requestAnimationFrame(simulateMovement);
+        }
+
+        function handleStopSimulation() {
+            isSimulating = false;
+            startSimulationBtn.textContent = 'Start Simulation';
+            
+            // Reset the robot's position and path, but not the instructions
+            robot = {
+                x: parseFloat(startXInput.value),
+                y: parseFloat(startYInput.value),
+                angle: parseFloat(startAngleInput.value) * Math.PI / 180,
+                speed: 5
+            };
+            pathHistory = [];
+            currentInstructionIndex = 0;
+            motorPauseStartTime = null;
+            draw();
         }
 
         /**
@@ -1055,6 +1232,88 @@ if __name__ == "__main__":
         }
 
         /**
+         * Saves all relevant mission data as a JSON file.
+         */
+        function handleSave() {
+            const missionData = {
+                missionName: missionNameInput.value,
+                startX: parseFloat(startXInput.value),
+                startY: parseFloat(startYInput.value),
+                startAngle: parseFloat(startAngleInput.value),
+                robotWidth: parseFloat(robotWidthInput.value),
+                robotHeight: parseFloat(robotHeightInput.value),
+                pathColor: pathColorInput.value,
+                moveFunctionName: moveFunctionNameInput.value,
+                rotateFunctionName: rotateFunctionNameInput.value,
+                motor1FunctionName: motor1FunctionNameInput.value,
+                motor2FunctionName: motor2FunctionNameInput.value,
+                instructions: instructions,
+            };
+
+            const jsonData = JSON.stringify(missionData, null, 2);
+            const filename = `${missionNameInput.value.replace(/[^a-zA-Z0-9]/g, '_') || 'robot_mission'}.json`;
+            const blob = new Blob([jsonData], { type: 'application/json' });
+
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        }
+
+        /**
+         * Loads a mission from a selected JSON file.
+         */
+        function handleLoad() {
+            fileInput.click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const loadedData = JSON.parse(e.target.result);
+                    
+                    missionNameInput.value = loadedData.missionName || 'Robot Mission';
+                    startXInput.value = loadedData.startX || 0;
+                    startYInput.value = loadedData.startY || 0;
+                    startAngleInput.value = loadedData.startAngle || 0;
+                    robotWidthInput.value = loadedData.robotWidth || 12.5;
+                    robotHeightInput.value = loadedData.robotHeight || 18;
+                    pathColorInput.value = loadedData.pathColor || '#22c55e';
+                    moveFunctionNameInput.value = loadedData.moveFunctionName || 'move';
+                    rotateFunctionNameInput.value = loadedData.rotateFunctionName || 'rotate';
+                    motor1FunctionNameInput.value = loadedData.motor1FunctionName || 'rotateLeftArm';
+                    motor2FunctionNameInput.value = loadedData.motor2FunctionName || 'rotateRightArm';
+                    
+                    instructions = loadedData.instructions || [];
+                    
+                    // Clear other tool points
+                    measurePoints = [];
+                    pathPoints = [];
+                    isCreatingPath = false;
+                    isMeasuring = false;
+                    
+                    renderInstructionList();
+                    draw();
+                    calculatePlannedPath();
+
+                } catch (err) {
+                    console.error('Failed to parse JSON file:', err);
+                    alert('Failed to load mission. The file may be corrupted or in an invalid format.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        /**
          * Checks if a point is within the robot's bounding box.
          * @param {number} x - The x coordinate of the point.
          * @param {number} y - The y coordinate of the point.
@@ -1070,31 +1329,9 @@ if __name__ == "__main__":
             tempCtx.translate(robotCanvasPos.x, robotCanvasPos.y);
             tempCtx.rotate(robot.angle);
             tempCtx.beginPath();
-            tempCtx.rect(-w / 2, -h / 2, w, h);
+            tempCtx.rect(-w/2, -h/2, w, h);
             tempCtx.restore();
             return tempCtx.isPointInPath(x, y);
-        }
-
-        /**
-         * Checks if a point is within a waypoint's bounding box.
-         * @param {number} x - The x coordinate of the point.
-         * @param {number} y - The y coordinate of the point.
-         * @returns {number} The index of the waypoint, or -1 if no waypoint is found.
-         */
-        function isPointInWaypoint(x, y) {
-            for (let i = 0; i < instructions.length; i++) {
-                const instruction = instructions[i];
-                if (instruction.type === 'waypoint') {
-                    const waypointPos = toCanvasCoords(instruction.x, instruction.y);
-                    const dx = x - waypointPos.x;
-                    const dy = y - waypointPos.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance <= 5) { // 5 pixel radius
-                        return i;
-                    }
-                }
-            }
-            return -1;
         }
 
         /**
@@ -1106,6 +1343,26 @@ if __name__ == "__main__":
         function isPointInMeasurePoint(x, y) {
             for (let i = 0; i < measurePoints.length; i++) {
                 const point = measurePoints[i];
+                const pointPos = toCanvasCoords(point.x, point.y);
+                const dx = x - pointPos.x;
+                const dy = y - pointPos.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance <= 5) { // 5 pixel radius
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        /**
+         * Checks if a point is within a path point's bounding box.
+         * @param {number} x - The x coordinate of the point.
+         * @param {number} y - The y coordinate of the point.
+         * @returns {number} The index of the path point, or -1 if no point is found.
+         */
+        function isPointInPathPoint(x, y) {
+            for (let i = 0; i < pathPoints.length; i++) {
+                const point = pathPoints[i];
                 const pointPos = toCanvasCoords(point.x, point.y);
                 const dx = x - pointPos.x;
                 const dy = y - pointPos.y;
@@ -1136,12 +1393,24 @@ if __name__ == "__main__":
                     measurePoints.push(newPoint);
                     draw();
                 }
+            } else if (isCreatingPath) {
+                const pointIndex = isPointInPathPoint(mouseX, mouseY);
+                if (pointIndex !== -1) {
+                    isDraggingPathPoint = true;
+                    draggedPathPointIndex = pointIndex;
+                } else {
+                    const newPoint = toTableCoords(mouseX, mouseY);
+                    pathPoints.push(newPoint);
+                    draw();
+                }
             } else {
-                const waypointIndex = isPointInWaypoint(mouseX, mouseY);
-                if (waypointIndex !== -1) {
-                    isDraggingWaypoint = true;
-                    draggedWaypointIndex = waypointIndex;
-                    canvas.style.cursor = 'grabbing';
+                const isHoveringRobot = isPointInRobot(mouseX, mouseY);
+                const isHoveringMeasurePoint = isPointInMeasurePoint(mouseX, mouseY) !== -1;
+                const isHoveringPathPoint = isPointInPathPoint(mouseX, mouseY) !== -1;
+                if (isHoveringRobot || isHoveringMeasurePoint || isHoveringPathPoint) {
+                    canvas.style.cursor = 'grab';
+                } else {
+                    canvas.style.cursor = 'pointer';
                 }
             }
         });
@@ -1158,20 +1427,19 @@ if __name__ == "__main__":
                 startXInput.value = robot.x.toFixed(2);
                 startYInput.value = robot.y.toFixed(2);
                 draw();
-            } else if (isDraggingWaypoint) {
-                instructions[draggedWaypointIndex].x = newTableCoords.x;
-                instructions[draggedWaypointIndex].y = newTableCoords.y;
-                renderInstructionList();
-                draw();
             } else if (isDraggingMeasurePoint) {
                 measurePoints[draggedMeasurePointIndex].x = newTableCoords.x;
                 measurePoints[draggedMeasurePointIndex].y = newTableCoords.y;
                 draw();
+            } else if (isDraggingPathPoint) {
+                pathPoints[draggedPathPointIndex].x = newTableCoords.x;
+                pathPoints[draggedPathPointIndex].y = newTableCoords.y;
+                draw();
             } else {
                 const isHoveringRobot = isPointInRobot(mouseX, mouseY);
-                const isHoveringWaypoint = isPointInWaypoint(mouseX, mouseY) !== -1;
                 const isHoveringMeasurePoint = isPointInMeasurePoint(mouseX, mouseY) !== -1;
-                if (isHoveringRobot || isHoveringWaypoint || isHoveringMeasurePoint) {
+                const isHoveringPathPoint = isPointInPathPoint(mouseX, mouseY) !== -1;
+                if (isHoveringRobot || isHoveringMeasurePoint || isHoveringPathPoint) {
                     canvas.style.cursor = 'grab';
                 } else {
                     canvas.style.cursor = 'pointer';
@@ -1181,47 +1449,92 @@ if __name__ == "__main__":
 
         canvas.addEventListener('mouseup', () => {
             isDraggingRobot = false;
-            isDraggingWaypoint = false;
-            draggedWaypointIndex = -1;
             isDraggingMeasurePoint = false;
             draggedMeasurePointIndex = -1;
+            isDraggingPathPoint = false;
+            draggedPathPointIndex = -1;
             canvas.style.cursor = 'grab';
         });
 
         // Event listeners
-        addWaypointBtn.addEventListener('click', handleAddWaypoint);
         addMoveBtn.addEventListener('click', handleAddMove);
         addRotateBtn.addEventListener('click', handleAddRotate);
+        addMotor1Btn.addEventListener('click', handleAddMotor1);
+        addMotor2Btn.addEventListener('click', handleAddMotor2);
         startSimulationBtn.addEventListener('click', handleStartSimulation);
+        stopSimulationBtn.addEventListener('click', handleStopSimulation);
         resetBtn.addEventListener('click', handleReset);
         copyCodeBtn.addEventListener('click', handleCopyCode);
         downloadCodeBtn.addEventListener('click', handleDownloadCode);
+        saveBtn.addEventListener('click', handleSave);
+        loadBtn.addEventListener('click', handleLoad);
+        fileInput.addEventListener('change', handleFileSelect);
+        
         measureBtn.addEventListener('click', () => {
             isMeasuring = !isMeasuring;
             if (isMeasuring) {
-                measureBtn.classList.add('bg-gray-700');
+                isCreatingPath = false; // Disable path creation
+                createPathBtn.classList.remove('bg-purple-700');
+                createPathBtn.classList.add('bg-purple-500');
+                measureBtn.classList.remove('bg-yellow-500');
+                measureBtn.classList.add('bg-yellow-700');
                 measurePoints = []; // Clear old points
             } else {
-                measureBtn.classList.remove('bg-gray-700');
+                measureBtn.classList.remove('bg-yellow-700');
+                measureBtn.classList.add('bg-yellow-500');
             }
             draw();
         });
+
+        createPathBtn.addEventListener('click', () => {
+            if (isCreatingPath) {
+                // Finalize path
+                if (pathPoints.length > 0) {
+                    instructions.push({ type: 'followPath', points: pathPoints });
+                    renderInstructionList();
+                }
+                pathPoints = [];
+                isCreatingPath = false;
+                createPathBtn.classList.remove('bg-purple-700');
+                createPathBtn.classList.add('bg-purple-500');
+            } else {
+                // Start a new path
+                isCreatingPath = true;
+                isMeasuring = false; // Disable measuring tool
+                measureBtn.classList.remove('bg-yellow-700');
+                measureBtn.classList.add('bg-yellow-500');
+                createPathBtn.classList.remove('bg-purple-500');
+                createPathBtn.classList.add('bg-purple-700');
+                pathPoints = [];
+            }
+            draw();
+        });
+
 
         // Update robot position when user changes the input fields
         startXInput.addEventListener('change', () => {
             robot.x = parseFloat(startXInput.value);
             draw();
+            calculatePlannedPath();
         });
         startYInput.addEventListener('change', () => {
             robot.y = parseFloat(startYInput.value);
             draw();
+            calculatePlannedPath();
         });
         startAngleInput.addEventListener('change', () => {
             robot.angle = parseFloat(startAngleInput.value) * Math.PI / 180;
             draw();
+            calculatePlannedPath();
         });
-        robotWidthInput.addEventListener('change', draw);
-        robotHeightInput.addEventListener('change', draw);
+        robotWidthInput.addEventListener('change', () => {
+            draw();
+            calculatePlannedPath();
+        });
+        robotHeightInput.addEventListener('change', () => {
+            draw();
+            calculatePlannedPath();
+        });
         
         // Initial draw and state setup
         handleReset();
@@ -1250,6 +1563,7 @@ if __name__ == "__main__":
         window.onload = () => {
             resizeCanvas();
             draw();
+            calculatePlannedPath();
         };
     </script>
 </body>
