@@ -207,6 +207,19 @@
                         </div>
                     </div>
                 </div>
+                <!-- Time Scrub Controls -->
+                <div class="w-full p-6 bg-gray-800 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Time Scrub</h2>
+                    <div class="flex items-center gap-4">
+                        <span id="currentTimeDisplay" class="text-gray-200 font-bold w-12 text-right">0.0s</span>
+                        <div class="flex items-center flex-grow">
+                            <button id="rewindBtn" class="text-gray-200 font-bold text-2xl px-2">«</button>
+                            <input type="range" id="timeSlider" min="0" max="1" step="0.001" value="0" class="w-full">
+                            <button id="forwardBtn" class="text-gray-200 font-bold text-2xl px-2">»</button>
+                        </div>
+                        <span id="totalTimeDisplay" class="text-gray-200 font-bold w-12">0.0s</span>
+                    </div>
+                </div>
                 
                 <!-- Python Function Name Input Fields -->
                 <div class="w-full p-6 bg-gray-800 rounded-lg shadow-sm">
@@ -214,11 +227,11 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label for="moveFunctionName" class="block text-sm font-medium text-gray-200">Move Function Name</label>
-                            <input type="text" id="moveFunctionName" value="move" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            <input type="text" id="moveFunctionName" value="drive" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                         <div>
                             <label for="rotateFunctionName" class="block text-sm font-medium text-gray-200">Rotate Function Name</label>
-                            <input type="text" id="rotateFunctionName" value="rotate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            <input type="text" id="rotateFunctionName" value="rotateDegrees" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                          <div>
                             <label for="motor1FunctionName" class="block text-sm font-medium text-gray-200">Motor 1 Function Name</label>
@@ -286,6 +299,11 @@
         const loadBtn = document.getElementById('loadBtn');
         const fileInput = document.getElementById('fileInput');
         const map2OpacityInput = document.getElementById('map2Opacity');
+        const timeSlider = document.getElementById('timeSlider');
+        const rewindBtn = document.getElementById('rewindBtn');
+        const forwardBtn = document.getElementById('forwardBtn');
+        const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+        const totalTimeDisplay = document.getElementById('totalTimeDisplay');
 
         // Image for the background
         const backgroundImage = new Image();
@@ -311,14 +329,11 @@
             angle: 0, // In radians
             speed: 5 // Pixels per frame
         };
+        let robotStateHistory = [];
+        let totalMissionTime = 0;
 
         // Instructions
         let instructions = [];
-        let simulationInstructions = []; // A copy of the instructions for the simulation run
-        let currentInstructionIndex = 0;
-        let isSimulating = false;
-        let pathHistory = [];
-        let plannedPathPoints = [];
         let dragSrcEl = null;
 
         // Drag and drop state for the robot
@@ -337,10 +352,6 @@
         let draggedPathPointIndex = -1;
         let hoveredPathPointIndex = -1;
         
-        // Motor commands simulation state
-        let motorPauseStartTime = null;
-        const MOTOR_PAUSE_DURATION = 1000; // 1 second in milliseconds
-
         // Global helper functions
         const toRadians = (deg) => deg * Math.PI / 180;
         const toDegrees = (rad) => rad * 180 / Math.PI;
@@ -536,15 +547,15 @@
          * Draws the actual path the robot has taken.
          */
         function drawPathHistory() {
-            if (pathHistory.length < 2) return;
+            if (robotStateHistory.length < 2) return;
             ctx.strokeStyle = pathColorInput.value;
             ctx.lineWidth = 3;
             ctx.beginPath();
-            const startPos = toCanvasCoords(pathHistory[0].x, pathHistory[0].y);
+            const startPos = toCanvasCoords(robotStateHistory[0].x, robotStateHistory[0].y);
             ctx.moveTo(startPos.x, startPos.y);
             
-            for (let i = 1; i < pathHistory.length; i++) {
-                const pos = toCanvasCoords(pathHistory[i].x, pathHistory[i].y);
+            for (let i = 1; i < robotStateHistory.length; i++) {
+                const pos = toCanvasCoords(robotStateHistory[i].x, robotStateHistory[i].y);
                 ctx.lineTo(pos.x, pos.y);
             }
             ctx.stroke();
@@ -695,6 +706,64 @@
         }
 
         /**
+         * Calculates the total time for the mission.
+         */
+        function calculateTotalTime() {
+            let totalTime = 0;
+            let finalState = {
+                x: parseFloat(startXInput.value),
+                y: parseFloat(startYInput.value),
+                angle: parseFloat(startAngleInput.value) * Math.PI / 180,
+            };
+
+            instructions.forEach(instruction => {
+                const moveSpeed = instruction.speed || 1000;
+                const rotateSpeed = instruction.speed || 500;
+                
+                if (instruction.type === 'move') {
+                    totalTime += instruction.distance / (moveSpeed / 100);
+                    finalState.x += instruction.distance * Math.sin(finalState.angle);
+                    finalState.y += instruction.distance * Math.cos(finalState.angle);
+                } else if (instruction.type === 'rotate') {
+                    totalTime += Math.abs(instruction.angle) / (rotateSpeed / 10);
+                    finalState.angle += toRadians(instruction.angle);
+                } else if (instruction.type === 'followPath') {
+                    let pathCurrentX = finalState.x;
+                    let pathCurrentY = finalState.y;
+                    let pathCurrentAngleRad = finalState.angle;
+                    
+                    instruction.points.forEach(point => {
+                        const dx = point.x - pathCurrentX;
+                        const dy = point.y - pathCurrentY;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        const targetAngleRad = Math.atan2(dx, dy);
+                        let angleDiffRad = targetAngleRad - pathCurrentAngleRad;
+                        
+                        while(angleDiffRad > Math.PI) angleDiffRad -= 2 * Math.PI;
+                        while(angleDiffRad < -Math.PI) angleDiffRad += 2 * Math.PI;
+                        
+                        const angleDiffDeg = toDegrees(angleDiffRad);
+                        
+                        totalTime += Math.abs(angleDiffDeg) / (1000 / 10);
+                        totalTime += distance / (1000 / 100);
+
+                        pathCurrentAngleRad += angleDiffRad;
+                        pathCurrentX = point.x;
+                        pathCurrentY = point.y;
+                    });
+                    finalState.x = pathCurrentX;
+                    finalState.y = pathCurrentY;
+                    finalState.angle = pathCurrentAngleRad;
+                } else if (instruction.type === 'motor1' || instruction.type === 'motor2') {
+                    totalTime += 1; // 1 second pause
+                }
+            });
+            totalMissionTime = totalTime;
+            totalTimeDisplay.textContent = `${totalMissionTime.toFixed(1)}s`;
+        }
+        
+        /**
          * Calculates the planned path based on all instructions.
          */
         function calculatePlannedPath() {
@@ -714,34 +783,20 @@
                     plannedPathPoints.push({ x: currentX, y: currentY });
                 } else if (instruction.type === 'rotate') {
                     const angle = instruction.angle;
-                    const angleRad = toRadians(angle);
                     const oldAngleRad = currentAngleRad;
-                    currentAngleRad += angleRad;
-                    
-                    const pivX = currentX + pivotY * Math.cos(oldAngleRad);
-                    const pivY = currentY - pivotY * Math.sin(oldAngleRad);
-
-                    currentX = pivX - pivotY * Math.cos(currentAngleRad);
-                    currentY = pivY + pivotY * Math.sin(currentAngleRad);
+                    currentAngleRad += toRadians(angle);
                 } else if (instruction.type === 'followPath') {
                     instruction.points.forEach(point => {
                         const dx = point.x - currentX;
                         const dy = point.y - currentY;
-                        
                         const targetAngleRad = Math.atan2(dx, dy);
-                        const oldAngleRad = currentAngleRad;
                         currentAngleRad = targetAngleRad;
-
-                        currentX = currentX + (pivotY * Math.cos(oldAngleRad)) - (pivotY * Math.cos(currentAngleRad));
-                        currentY = currentY - (pivotY * Math.sin(oldAngleRad)) + (pivotY * Math.sin(currentAngleRad));
-
                         currentX = point.x;
                         currentY = point.y;
-                        
                         plannedPathPoints.push({ x: currentX, y: currentY });
                     });
                 } else if (instruction.type === 'motor1' || instruction.type === 'motor2') {
-                    plannedPathPoints.push({ x: currentX, y: currentY });
+                    // Motor commands do not change position or angle in planned path
                 }
             });
             draw();
@@ -755,8 +810,8 @@
             const startX = parseFloat(startXInput.value).toFixed(2);
             const startY = parseFloat(startYInput.value).toFixed(2);
             const startAngle = parseFloat(startAngleInput.value).toFixed(2);
-            const moveFunction = moveFunctionNameInput.value || 'move';
-            const rotateFunction = rotateFunctionNameInput.value || 'rotate';
+            const moveFunction = moveFunctionNameInput.value || 'drive';
+            const rotateFunction = rotateFunctionNameInput.value || 'rotateDegrees';
             const motor1Function = motor1FunctionNameInput.value || 'rotateLeftArm';
             const motor2Function = motor2FunctionNameInput.value || 'rotateRightArm';
 
@@ -798,29 +853,21 @@ async def main():
             let current_angle_deg = parseFloat(startAngleInput.value);
             const toRadians = (deg) => deg * Math.PI / 180;
             const toDegrees = (rad) => rad * 180 / Math.PI;
-            const pivotY = parseFloat(pivotYInput.value);
-
+            
             instructions.forEach((instruction, index) => {
+                const moveSpeed = instruction.speed || 1000;
+                const rotateSpeed = instruction.speed || 500;
+                
                 if (instruction.type === 'move') {
                     const distance = instruction.distance;
-                    const speed = instruction.speed;
-                    code += `    await ${moveFunction}(${distance.toFixed(2)}, ${speed.toFixed(0)})\n`;
+                    code += `    await ${moveFunction}(${distance.toFixed(2)}, ${moveSpeed.toFixed(0)})\n`;
                     const angleRad = toRadians(current_angle_deg);
                     current_x += distance * Math.sin(angleRad);
                     current_y += distance * Math.cos(angleRad);
                 } else if (instruction.type === 'rotate') {
                     const angle = instruction.angle;
-                    const speed = instruction.speed;
-                    code += `    await ${rotateFunction}(${angle.toFixed(2)}, ${speed.toFixed(0)})\n`;
+                    code += `    await ${rotateFunction}(${angle.toFixed(2)}, ${rotateSpeed.toFixed(0)})\n`;
                     current_angle_deg += angle;
-                    
-                    const oldAngleRad = toRadians(current_angle_deg - angle);
-                    const newAngleRad = toRadians(current_angle_deg);
-                    const pivX = current_x + pivotY * Math.cos(oldAngleRad);
-                    const pivY = current_y - pivotY * Math.sin(oldAngleRad);
-
-                    current_x = pivX - pivotY * Math.cos(newAngleRad);
-                    current_y = pivY + pivotY * Math.sin(newAngleRad);
                 } else if (instruction.type === 'followPath') {
                     let pathCurrentX = current_x;
                     let pathCurrentY = current_y;
@@ -840,14 +887,6 @@ async def main():
                         while(angleDiffRad < -Math.PI) angleDiffRad += 2 * Math.PI;
                         
                         const angleDiffDeg = toDegrees(angleDiffRad);
-                        const newAngleRad = oldAngleRad + angleDiffRad;
-                        
-                        // Recalculate robot center based on pivot point rotation
-                        const pivX = pathCurrentX + pivotY * Math.cos(oldAngleRad);
-                        const pivY = pathCurrentY - pivotY * Math.sin(oldAngleRad);
-
-                        pathCurrentX = pivX - pivotY * Math.cos(newAngleRad);
-                        pathCurrentY = pivY + pivotY * Math.sin(newAngleRad);
                         
                         pathCurrentAngleDeg += angleDiffDeg;
 
@@ -876,142 +915,167 @@ runloop.run(main())
 `;
             codeOutput.textContent = code;
         }
-
+        
         /**
-         * The main simulation loop.
+         * Calculates the robot's state (position, angle) at a given time.
          */
-        function simulateMovement(timestamp) {
-            if (!isSimulating) {
-                return;
-            }
-            
-            // Add current robot position to history
-            pathHistory.push({ x: robot.x, y: robot.y });
-
-            if (currentInstructionIndex >= simulationInstructions.length) {
-                isSimulating = false;
-                startSimulationBtn.textContent = 'Start Simulation';
-                generatePythonCode();
-                return;
-            }
-
-            const instruction = simulationInstructions[currentInstructionIndex];
+        function getRobotStateAtTime(time) {
+            let currentX = parseFloat(startXInput.value);
+            let currentY = parseFloat(startYInput.value);
+            let currentAngleRad = parseFloat(startAngleInput.value) * Math.PI / 180;
             const pivotY = parseFloat(pivotYInput.value);
+            
+            let elapsedTime = 0;
+            let finalState = { x: currentX, y: currentY, angle: currentAngleRad, pathHistory: [{ x: currentX, y: currentY }] };
 
-            if (instruction.type === 'move') {
-                const remainingDistance = instruction.distance;
-                const moveStep = instruction.speed / 1000 * 5; // 5 cm/s at speed 1000
-                
-                if (Math.abs(remainingDistance) > moveStep) {
-                    const moveDirection = Math.sign(remainingDistance);
-                    const angleRad = robot.angle;
-                    robot.x += Math.sin(angleRad) * moveStep * moveDirection;
-                    robot.y += Math.cos(angleRad) * moveStep * moveDirection;
-                    instruction.distance -= moveStep * moveDirection;
-                } else {
-                    const angleRad = robot.angle;
-                    robot.x += Math.sin(angleRad) * remainingDistance;
-                    robot.y += Math.cos(angleRad) * remainingDistance;
-                    currentInstructionIndex++;
-                }
-            } else if (instruction.type === 'rotate') {
-                const angleLeft = instruction.angle;
-                const angleStep = instruction.speed / 500 * 2; // 2 deg/frame at speed 500
-                const angleStepRad = angleStep * Math.PI / 180;
-                
-                if (Math.abs(angleLeft) > angleStep) {
-                    const oldAngleRad = robot.angle;
-                    const newAngleRad = oldAngleRad + Math.sign(angleLeft) * angleStepRad;
-                    
-                    const pivX = robot.x + pivotY * Math.cos(oldAngleRad);
-                    const pivY = robot.y - pivotY * Math.sin(oldAngleRad);
-
-                    robot.x = pivX - pivotY * Math.cos(newAngleRad);
-                    robot.y = pivY + pivotY * Math.sin(newAngleRad);
-
-                    robot.angle += Math.sign(angleLeft) * angleStepRad;
-                    instruction.angle -= Math.sign(angleLeft) * angleStep;
-                } else {
-                    const oldAngleRad = robot.angle;
-                    const newAngleRad = oldAngleRad + angleLeft * Math.PI / 180;
-
-                    const pivX = robot.x + pivotY * Math.cos(oldAngleRad);
-                    const pivY = robot.y - pivotY * Math.sin(oldAngleRad);
-
-                    robot.x = pivX - pivotY * Math.cos(newAngleRad);
-                    robot.y = pivY + pivotY * Math.sin(newAngleRad);
-
-                    robot.angle += angleLeft * Math.PI / 180;
-                    currentInstructionIndex++;
-                }
-            } else if (instruction.type === 'followPath') {
-                const path = instruction.points;
-                let pathIndex = instruction.pathIndex || 0;
-                
-                if (pathIndex >= path.length) {
-                    currentInstructionIndex++;
-                    return;
-                }
-
-                const targetWaypoint = path[pathIndex];
-                
-                if (!instruction.simulationState) {
-                    instruction.simulationState = 'rotate';
-                    instruction.pathIndex = pathIndex;
-                }
-
-                if (instruction.simulationState === 'rotate') {
-                    const dx = targetWaypoint.x - robot.x;
-                    const dy = targetWaypoint.y - robot.y;
-                    const targetAngle = Math.atan2(dx, dy);
-                    
-                    let angleDiff = targetAngle - robot.angle;
-                    
-                    while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
-                    while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-
-                    if (Math.abs(angleDiff) > 0.01) {
-                        const rotationStep = Math.sign(angleDiff) * 0.01;
-                        robot.angle += rotationStep;
-                    } else {
-                        robot.angle += angleDiff;
-                        instruction.simulationState = 'move';
-                    }
-                } else if (instruction.simulationState === 'move') {
-                    const dx = targetWaypoint.x - robot.x;
-                    const dy = targetWaypoint.y - robot.y;
-                    const distanceToTarget = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (distanceToTarget > 0.01) {
-                        const moveStep = robot.speed;
-                        const moveFactor = Math.min(moveStep, distanceToTarget) / distanceToTarget;
-                        
-                        robot.x += dx * moveFactor;
-                        robot.y += dy * moveFactor;
-                    } else {
-                        robot.x = targetWaypoint.x;
-                        robot.y = targetWaypoint.y;
-                        
-                        instruction.pathIndex++;
-                        if (instruction.pathIndex < path.length) {
-                            instruction.simulationState = 'rotate'; // Reset state for the next segment
-                        } else {
-                            currentInstructionIndex++;
-                        }
-                    }
-                }
-            } else if (instruction.type === 'motor1' || instruction.type === 'motor2') {
-                if (motorPauseStartTime === null) {
-                    motorPauseStartTime = timestamp;
-                }
-                const elapsedTime = timestamp - motorPauseStartTime;
-                if (elapsedTime >= MOTOR_PAUSE_DURATION) {
-                    currentInstructionIndex++;
-                    motorPauseStartTime = null;
-                }
+            if (time <= 0) {
+                return finalState;
             }
+
+            for (const instruction of instructions) {
+                let duration = 0;
+                let finalX = currentX;
+                let finalY = currentY;
+                let finalAngleRad = currentAngleRad;
+                
+                const moveSpeed = instruction.speed || 1000;
+                const rotateSpeed = instruction.speed || 500;
+
+                if (instruction.type === 'move') {
+                    duration = instruction.distance / (moveSpeed / 100);
+                    if (elapsedTime + duration >= time) {
+                        const timeInInstruction = time - elapsedTime;
+                        const distMoved = (moveSpeed / 100) * timeInInstruction;
+                        finalX = currentX + distMoved * Math.sin(currentAngleRad);
+                        finalY = currentY + distMoved * Math.cos(currentAngleRad);
+                        finalState.pathHistory.push({x: finalX, y: finalY});
+                        finalState.x = finalX;
+                        finalState.y = finalY;
+                        finalState.angle = finalAngleRad;
+                        return finalState;
+                    }
+                    finalX = currentX + instruction.distance * Math.sin(currentAngleRad);
+                    finalY = currentY + instruction.distance * Math.cos(currentAngleRad);
+                    finalState.pathHistory.push({x: finalX, y: finalY});
+                } else if (instruction.type === 'rotate') {
+                    duration = Math.abs(instruction.angle) / (rotateSpeed / 10);
+                    if (elapsedTime + duration >= time) {
+                        const timeInInstruction = time - elapsedTime;
+                        const angleRotated = (rotateSpeed / 10) * Math.sign(instruction.angle) * timeInInstruction;
+                        finalAngleRad = currentAngleRad + toRadians(angleRotated);
+                        
+                        finalState.x = currentX;
+                        finalState.y = currentY;
+                        finalState.angle = finalAngleRad;
+                        return finalState;
+                    }
+                    finalAngleRad = currentAngleRad + toRadians(instruction.angle);
+                    
+                    finalX = currentX;
+                    finalY = currentY;
+                } else if (instruction.type === 'followPath') {
+                    let pathCurrentX = currentX;
+                    let pathCurrentY = currentY;
+                    let pathCurrentAngleRad = currentAngleRad;
+                    const originalElapsedTime = elapsedTime;
+
+                    for (const point of instruction.points) {
+                        const dx = point.x - pathCurrentX;
+                        const dy = point.y - pathCurrentY;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const targetAngleRad = Math.atan2(dx, dy);
+                        let angleDiffRad = targetAngleRad - pathCurrentAngleRad;
+
+                        while(angleDiffRad > Math.PI) angleDiffRad -= 2 * Math.PI;
+                        while(angleDiffRad < -Math.PI) angleDiffRad += 2 * Math.PI;
+                        
+                        const rotationDuration = Math.abs(toDegrees(angleDiffRad)) / (1000 / 10);
+                        const moveDuration = distance / (1000 / 100);
+
+                        if (elapsedTime + rotationDuration >= time) {
+                            const timeInInstruction = time - elapsedTime;
+                            const angleRotated = (1000 / 10) * Math.sign(angleDiffRad) * timeInInstruction;
+                            finalAngleRad = pathCurrentAngleRad + toRadians(angleRotated);
+                            
+                            finalState.x = pathCurrentX; 
+                            finalState.y = pathCurrentY;
+                            finalState.angle = finalAngleRad;
+                            return finalState;
+                        }
+                        
+                        elapsedTime += rotationDuration;
+                        pathCurrentAngleRad += angleDiffRad;
+                        
+                        if (elapsedTime + moveDuration >= time) {
+                            const timeInInstruction = time - elapsedTime;
+                            const distMoved = (1000 / 100) * timeInInstruction;
+                            finalX = pathCurrentX + distMoved * Math.sin(pathCurrentAngleRad);
+                            finalY = pathCurrentY + distMoved * Math.cos(pathCurrentAngleRad);
+                            finalState.pathHistory.push({x: finalX, y: finalY});
+                            finalState.x = finalX;
+                            finalState.y = finalY;
+                            finalState.angle = pathCurrentAngleRad;
+                            return finalState;
+                        }
+                        
+                        elapsedTime += moveDuration;
+                        finalState.pathHistory.push({x: point.x, y: point.y});
+                        pathCurrentX = point.x;
+                        pathCurrentY = point.y;
+                    }
+                    finalX = pathCurrentX;
+                    finalY = pathCurrentY;
+                    finalAngleRad = pathCurrentAngleRad;
+                } else if (instruction.type === 'motor1' || instruction.type === 'motor2') {
+                    duration = 1;
+                    if (elapsedTime + duration >= time) {
+                        return finalState;
+                    }
+                }
+                elapsedTime += duration;
+                currentX = finalX;
+                currentY = finalY;
+                currentAngleRad = finalAngleRad;
+            }
+
+            finalState.x = currentX;
+            finalState.y = currentY;
+            finalState.angle = currentAngleRad;
+            return finalState;
+        }
+
+        let animationFrameId = null;
+        let lastTimestamp = 0;
+
+        function animateSlider(timestamp) {
+            if (!animationFrameId) return;
+
+            const deltaTime = (timestamp - lastTimestamp) / 1000;
+            const sliderValue = parseFloat(timeSlider.value);
+            const newSliderValue = sliderValue + (deltaTime / totalMissionTime);
+            
+            timeSlider.value = newSliderValue;
+            updateSimulationState(newSliderValue);
+
+            if (newSliderValue >= 1) {
+                handleStopSimulation();
+                return;
+            }
+
+            lastTimestamp = timestamp;
+            animationFrameId = requestAnimationFrame(animateSlider);
+        }
+
+        function updateSimulationState(normalizedTime) {
+            const time = normalizedTime * totalMissionTime;
+            const state = getRobotStateAtTime(time);
+            robot.x = state.x;
+            robot.y = state.y;
+            robot.angle = state.angle;
+            robotStateHistory = state.pathHistory;
+
+            currentTimeDisplay.textContent = `${time.toFixed(1)}s`;
             draw();
-            requestAnimationFrame(simulateMovement);
         }
 
         /**
@@ -1027,15 +1091,19 @@ runloop.run(main())
                 
                 let text = `Instruction ${index + 1}: `;
                 if (instruction.type === 'move') {
-                    text += `Move ${instruction.distance.toFixed(2)} cm @ ${instruction.speed.toFixed(0)}`;
+                    const speed = instruction.speed || 1000;
+                    text += `Move ${instruction.distance.toFixed(2)} cm @ ${speed.toFixed(0)}`;
                 } else if (instruction.type === 'rotate') {
-                    text += `Rotate ${instruction.angle.toFixed(2)} deg @ ${instruction.speed.toFixed(0)}`;
+                    const speed = instruction.speed || 500;
+                    text += `Rotate ${instruction.angle.toFixed(2)} deg @ ${speed.toFixed(0)}`;
                 } else if (instruction.type === 'followPath') {
                     text += `Follow Path (${instruction.points.length} points)`;
                 } else if (instruction.type === 'motor1') {
-                    text += `Motor 1 Rot: 90 deg @ 500`;
+                    const speed = instruction.speed || 500;
+                    text += `Motor 1 Rot: 90 deg @ ${speed.toFixed(0)}`;
                 } else if (instruction.type === 'motor2') {
-                    text += `Motor 2 Rot: 90 deg @ 500`;
+                    const speed = instruction.speed || 500;
+                    text += `Motor 2 Rot: 90 deg @ ${speed.toFixed(0)}`;
                 }
                 
                 listItem.innerHTML = `
@@ -1050,6 +1118,7 @@ runloop.run(main())
             });
             addDragListeners();
             generatePythonCode();
+            calculateTotalTime();
             calculatePlannedPath();
         }
 
@@ -1117,18 +1186,20 @@ runloop.run(main())
             
             let formHtml = '';
             if (instruction.type === 'move') {
+                const speed = instruction.speed || 1000;
                 formHtml = `
                     <form class="edit-form flex items-center gap-2" data-index="${index}">
                         <input type="number" name="distance" value="${instruction.distance.toFixed(2)}" step="0.01">
-                        <input type="number" name="speed" value="${instruction.speed.toFixed(0)}" step="10">
+                        <input type="number" name="speed" value="${speed.toFixed(0)}" step="10">
                         <button type="submit">Save</button>
                     </form>
                 `;
             } else if (instruction.type === 'rotate') {
+                const speed = instruction.speed || 500;
                 formHtml = `
                     <form class="edit-form flex items-center gap-2" data-index="${index}">
                         <input type="number" name="angle" value="${instruction.angle.toFixed(2)}" step="0.01">
-                        <input type="number" name="speed" value="${instruction.speed.toFixed(0)}" step="10">
+                        <input type="number" name="speed" value="${speed.toFixed(0)}" step="10">
                         <button type="submit">Save</button>
                     </form>
                 `;
@@ -1168,7 +1239,6 @@ runloop.run(main())
             
             renderInstructionList();
             draw();
-            calculatePlannedPath();
         }
 
         function handleDeleteInstruction(e) {
@@ -1176,7 +1246,6 @@ runloop.run(main())
             instructions.splice(index, 1);
             renderInstructionList();
             draw();
-            calculatePlannedPath();
         }
 
 
@@ -1245,52 +1314,31 @@ runloop.run(main())
             measureBtn.classList.add('bg-yellow-500');
             createPathBtn.classList.remove('bg-purple-700');
             createPathBtn.classList.add('bg-purple-500');
+            calculateTotalTime();
             calculatePlannedPath();
-            draw();
+            updateSimulationState(0);
         }
 
         /**
          * Starts the simulation.
          */
         function handleStartSimulation() {
-            // Reset the robot's position and path, but not the instructions
-            robot = { 
-                x: parseFloat(startXInput.value), 
-                y: parseFloat(startYInput.value), 
-                angle: parseFloat(startAngleInput.value) * Math.PI / 180, 
-                speed: 5
-            };
-            pathHistory = [];
-            currentInstructionIndex = 0;
-            
-            // Create a deep copy of instructions to avoid modifying the original list
-            simulationInstructions = JSON.parse(JSON.stringify(instructions));
-            
-            if (simulationInstructions.length === 0) {
-                return;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
             }
-            
-            isSimulating = true;
-            startSimulationBtn.textContent = 'Simulating...';
-            codeOutput.textContent = 'Generating code...';
-            requestAnimationFrame(simulateMovement);
+            timeSlider.value = 0;
+            updateSimulationState(0);
+            lastTimestamp = performance.now();
+            animationFrameId = requestAnimationFrame(animateSlider);
+            startSimulationBtn.textContent = 'Playing...';
         }
 
         function handleStopSimulation() {
-            isSimulating = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
             startSimulationBtn.textContent = 'Start Simulation';
-            
-            // Reset the robot's position and path, but not the instructions
-            robot = {
-                x: parseFloat(startXInput.value),
-                y: parseFloat(startYInput.value),
-                angle: parseFloat(startAngleInput.value) * Math.PI / 180,
-                speed: 5
-            };
-            pathHistory = [];
-            currentInstructionIndex = 0;
-            motorPauseStartTime = null;
-            draw();
         }
 
         /**
@@ -1393,8 +1441,8 @@ runloop.run(main())
                     pivotYInput.value = loadedData.pivotY || 0;
                     pathColorInput.value = loadedData.pathColor || '#22c55e';
                     map2OpacityInput.value = loadedData.map2Opacity || 1;
-                    moveFunctionNameInput.value = loadedData.moveFunctionName || 'move';
-                    rotateFunctionNameInput.value = loadedData.rotateFunctionName || 'rotate';
+                    moveFunctionNameInput.value = loadedData.moveFunctionName || 'drive';
+                    rotateFunctionNameInput.value = loadedData.rotateFunctionName || 'rotateDegrees';
                     motor1FunctionNameInput.value = loadedData.motor1FunctionName || 'rotateLeftArm';
                     motor2FunctionNameInput.value = loadedData.motor2FunctionName || 'rotateRightArm';
                     
@@ -1408,8 +1456,6 @@ runloop.run(main())
                     
                     renderInstructionList();
                     draw();
-                    calculatePlannedPath();
-
                 } catch (err) {
                     console.error('Failed to parse JSON file:', err);
                     alert('Failed to load mission. The file may be corrupted or in an invalid format.');
@@ -1628,22 +1674,43 @@ runloop.run(main())
             draw();
         });
 
+        timeSlider.addEventListener('input', (e) => {
+            const normalizedTime = parseFloat(e.target.value);
+            updateSimulationState(normalizedTime);
+        });
+        
+        rewindBtn.addEventListener('click', () => {
+            timeSlider.value = Math.max(0, parseFloat(timeSlider.value) - 0.01);
+            updateSimulationState(parseFloat(timeSlider.value));
+        });
+
+        forwardBtn.addEventListener('click', () => {
+            timeSlider.value = Math.min(1, parseFloat(timeSlider.value) + 0.01);
+            updateSimulationState(parseFloat(timeSlider.value));
+        });
+
 
         // Update robot position when user changes the input fields
         startXInput.addEventListener('change', () => {
             robot.x = parseFloat(startXInput.value);
             draw();
             calculatePlannedPath();
+            calculateTotalTime();
+            updateSimulationState(parseFloat(timeSlider.value));
         });
         startYInput.addEventListener('change', () => {
             robot.y = parseFloat(startYInput.value);
             draw();
             calculatePlannedPath();
+            calculateTotalTime();
+            updateSimulationState(parseFloat(timeSlider.value));
         });
         startAngleInput.addEventListener('change', () => {
             robot.angle = parseFloat(startAngleInput.value) * Math.PI / 180;
             draw();
             calculatePlannedPath();
+            calculateTotalTime();
+            updateSimulationState(parseFloat(timeSlider.value));
         });
         robotWidthInput.addEventListener('change', () => {
             draw();
@@ -1705,6 +1772,8 @@ runloop.run(main())
             resizeCanvas();
             draw();
             calculatePlannedPath();
+            calculateTotalTime();
+            updateSimulationState(0);
         };
     </script>
 </body>
