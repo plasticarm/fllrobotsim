@@ -506,40 +506,39 @@
             const w = cmToPixels(parseFloat(robotWidthInput.value));
             const h = cmToPixels(parseFloat(robotHeightInput.value));
             const pivotY = cmToPixels(parseFloat(pivotYInput.value));
-            
+
             ctx.save();
-            // Translate to robot's center and then rotate
             ctx.translate(pos.x, pos.y);
             ctx.rotate(robot.angle);
 
-            // Draw robot body (relative to its center)
+            // Draw the robot body, visually offset by the pivotY
             ctx.fillStyle = '#3b82f6';
-            ctx.fillRect(-w/2, -h/2, w, h);
-
-            // Draw forward-facing line
+            ctx.fillRect(-w/2, -h/2 + pivotY, w, h);
+            
+            // Draw the forward-facing line, also offset by pivotY
             ctx.strokeStyle = '#1e40af';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(0, -h/2);
+            ctx.moveTo(0, pivotY);
+            ctx.lineTo(0, -h/2 + pivotY);
             ctx.stroke();
             
-            // Draw pivot line (relative to robot's local coordinates)
+            // Draw the grey pivot line (axle) on top
             ctx.strokeStyle = '#6b7280';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(-w/2, -pivotY);
-            ctx.lineTo(w/2, -pivotY);
+            ctx.moveTo(-w/2, 0);
+            ctx.lineTo(w/2, 0);
             ctx.stroke();
             
-            // Draw wheels (relative to the pivot line)
+            // Draw the wheels on top, at y=0
             const wheelWidth = cmToPixels(0.8);
             const wheelHeight = cmToPixels(5.5);
-            const wheelOffset = w/2 + 2; // A little outside the robot body
-            ctx.fillStyle = '#60a5fa'; // Light blue
-            ctx.fillRect(-wheelOffset, -pivotY - wheelHeight/2, wheelWidth, wheelHeight);
-            ctx.fillRect(wheelOffset - wheelWidth, -pivotY - wheelHeight/2, wheelWidth, wheelHeight);
-            
+            const wheelOffset = w/2 + 2;
+            ctx.fillStyle = '#60a5fa';
+            ctx.fillRect(-wheelOffset, -wheelHeight/2, wheelWidth, wheelHeight);
+            ctx.fillRect(wheelOffset - wheelWidth, -wheelHeight/2, wheelWidth, wheelHeight);
+
             ctx.restore();
         }
 
@@ -1474,13 +1473,15 @@ runloop.run(main())
             const robotCanvasPos = toCanvasCoords(robot.x, robot.y);
             const w = cmToPixels(parseFloat(robotWidthInput.value));
             const h = cmToPixels(parseFloat(robotHeightInput.value));
+            const pivotY = cmToPixels(parseFloat(pivotYInput.value));
 
             const tempCtx = document.createElement('canvas').getContext('2d');
             tempCtx.save();
             tempCtx.translate(robotCanvasPos.x, robotCanvasPos.y);
             tempCtx.rotate(robot.angle);
             tempCtx.beginPath();
-            tempCtx.rect(-w/2, -h/2, w, h);
+            // The bounding box is now offset
+            tempCtx.rect(-w/2, -h/2 + pivotY, w, h);
             tempCtx.restore();
             return tempCtx.isPointInPath(x, y);
         }
