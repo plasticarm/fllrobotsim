@@ -12,8 +12,9 @@
         }
         canvas {
             border: 2px solid #1d1d1d;
+            border-radius: 0.5rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);            
-            background-color: #1d1d1d;
+            background-color: #f7f7f7;
             cursor: grab;
         }
         .code-output {
@@ -27,33 +28,19 @@
         }
         .instruction-item {
             padding: 0.5rem 0.75rem;
-            border-bottom: 1px solid #4b5563;
             cursor: grab;
-            background-color: #374151;
             color: #d1d5db;
             border-radius: 0.375rem;
-            margin-bottom: 0.25rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            width: 250px;
         }
         .instruction-item.dragging {
             opacity: 0.5;
         }
         .instruction-item:hover {
             background-color: #4b5563;
-        }
-        .instruction-controls button {
-            background: none;
-            border: none;
-            color: #d1d5db;
-            font-size: 0.875rem;
-            cursor: pointer;
-            padding: 0 0.25rem;
-            transition: color 0.2s;
-        }
-        .instruction-controls button:hover {
-            color: #9ca3af;
         }
         .edit-form input {
             background-color: #1f2937;
@@ -63,112 +50,155 @@
             padding: 0.25rem;
             width: 80px;
         }
-        .edit-form button {
-            background: #22c55e;
+        .edit-btn {
+            background-color: #6b7280;
             color: white;
             padding: 0.25rem 0.5rem;
             border-radius: 0.25rem;
+            font-size: 0.75rem;
+            line-height: 1rem;
+            transition: background-color 0.2s;
+        }
+        .edit-btn:hover {
+            background-color: #4b5563;
+        }
+        .delete-btn {
+            background-color: #ef4444;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            line-height: 1rem;
+            transition: background-color 0.2s;
+        }
+        .delete-btn:hover {
+            background-color: #b91c1c;
+        }
+        .instruction-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 1rem;
         }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
     <div class="w-full bg-grey-800 p-8 rounded-lg shadow-lg">
-        <div class="flex flex-col lg:flex-row gap-8">
+        <div class="flex flex-col lg:flex-row gap-2">
             <!-- Controls and Output -->
-            <div class="flex-none w-full lg:w-[20%] flex flex-col gap-6">
+            <div class="flex-none w-full lg:w-[20%] flex flex-col gap-2">
                 <!-- Mission and Start Config -->
                 <div class="p-6 bg-gray-800 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Mission and Start Configuration</h2>
+                    <div class="p-4 rounded-lg bg-blue-600 mb-4">  
+                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Mission</h2>                    
                     <div class="mb-4">
                         <label for="missionName" class="block text-sm font-medium text-gray-200">Mission Name</label>
                         <input type="text" id="missionName" value="Robot Mission" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                     </div>
-                    <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="grid grid-cols-2 flex flex-col gap-4 mt-4">
+                        <button id="saveBtn" class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                            Save
+                        </button>
+                        <button id="loadBtn" class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                            Load
+                        </button>
+                    </div>
+                    </div>
+                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Start Position</h2>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label for="startX" class="block text-sm font-medium text-gray-200">Start X (cm)</label>
-                            <input type="number" id="startX" value="-93.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            <label for="startX" class="block text-xs font-medium text-gray-200">Start X (cm)</label>
+                            <input type="number" id="startX" value="-93.0" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                         <div>
-                            <label for="startY" class="block text-sm font-medium text-gray-200">Start Y (cm)</label>
-                            <input type="number" id="startY" value="-48.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
-                        </div>
+                            <label for="startY" class="block text-xs font-medium text-gray-200">Start Y (cm)</label>
+                            <input type="number" id="startY" value="-48.0" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                        </div>                        
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 mb-4">                        
                         <div>
-                            <label for="startAngle" class="block text-sm font-medium text-gray-200">Start Angle (deg)</label>
-                            <input type="number" id="startAngle" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            <label for="startAngle" class="block text-xs font-medium text-gray-200">Start Angle (deg)</label>
+                            <input type="number" id="startAngle" value="0" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                     </div>
                 </div>
 
                 <!-- Robot Dimensions Input -->
                 <div class="p-6 bg-gray-800 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Robot Dimensions (cm)</h2>
+                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Robot Dimensions</h2>
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label for="robotWidth" class="block text-sm font-medium text-gray-200">Width</label>
-                            <input type="number" id="robotWidth" value="12.5" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            <label for="robotWidth" class="block text-xs font-medium text-gray-200">Width (cm)</label>
+                            <input type="number" id="robotWidth" value="12.5" min="1" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                         <div>
-                            <label for="robotHeight" class="block text-sm font-medium text-gray-200">Height</label>
-                            <input type="number" id="robotHeight" value="18" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            <label for="robotHeight" class="block text-xs font-medium text-gray-200">Height (cm)</label>
+                            <input type="number" id="robotHeight" value="18" min="1" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
                     </div>
                     <div>
-                        <label for="pivotY" class="block text-sm font-medium text-gray-200">Pivot Y Offset (cm)</label>
-                        <input type="number" id="pivotY" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                        <label for="pivotY" class="block text-xs font-medium text-gray-200">Pivot Y Offset (cm)</label>
+                        <input type="number" id="pivotY" value="0" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                     </div>
                 </div>
 
                 <!-- Command Input -->
                 <div class="p-6 bg-gray-800 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Add Command</h2>
+                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Commands</h2>
                     
-                    <div class="grid grid-cols-2 gap-4 my-4">
-                        <div>
-                            <label for="moveDistance" class="block text-sm font-medium text-gray-200">Move Distance (cm)</label>
-                            <input type="number" id="moveDistance" value="50.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
-                            <label for="moveSpeed" class="block text-sm font-medium text-gray-200 mt-2">Move Speed (0-1000)</label>
-                            <input type="number" id="moveSpeed" value="1000" min="0" max="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
-                        </div>
-                        <button id="addMoveBtn" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                    <div class="p-4 rounded-lg bg-blue-600 mb-4">  
+                        <button id="addMoveBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                             Add Move
-                        </button>
+                        </button>                      
+                        <div class="grid grid-cols-2 gap-4 my-2">
+                            <div>
+                                <label for="moveDistance" class="block text-xs font-medium text-white">Distance (cm)</label>
+                                <input type="number" id="moveDistance" value="50.0" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            </div>
+                            <div>
+                                <label for="moveSpeed" class="block text-xs font-medium text-white">Speed (0-1000)</label>
+                                <input type="number" id="moveSpeed" value="1000" min="0" max="1000" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            </div>
+                        </div>
+                        
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="rotateAngle" class="block text-sm font-medium text-gray-200">Rotate Angle (deg)</label>
-                            <input type="number" id="rotateAngle" value="90.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
-                            <label for="rotateSpeed" class="block text-sm font-medium text-gray-200 mt-2">Rotate Speed (0-1000)</label>
-                            <input type="number" id="rotateSpeed" value="500" min="0" max="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
-                        </div>
-                        <button id="addRotateBtn" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                    <div class="p-4 rounded-lg bg-orange-500 mb-4"> 
+                        <button id="addRotateBtn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                             Add Rotate
-                        </button>
+                        </button>                       
+                        <div class="grid grid-cols-2 gap-4 my-2">
+                            <div>
+                                <label for="rotateAngle" class="block text-xs font-medium text-white">Angle (deg)</label>
+                                <input type="number" id="rotateAngle" value="90.0" class="mt-1 block text-right w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            </div>
+                            <div>
+                                <label for="rotateSpeed" class="block text-xs font-medium text-white">Speed (0-1000)</label>
+                                <input type="number" id="rotateSpeed" value="500" min="0" max="1000" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            </div>
+                        </div>
+                        
+                    </div>
+
+                    <div class="grid grid-cols-1 p-4 rounded-lg bg-gray-600 gap-4 mb-4">                     
+                        
+                            <button id="addMotor1Btn" class="w-full text-left bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                                Add Motor 1 Rotation
+                            </button>
+                    </div>
+                    <div class="grid grid-cols-1 p-4 rounded-lg bg-gray-600 gap-4 mb-4">  
+                            <button id="addMotor2Btn" class="w-full text-left bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                                Add Motor 2 Rotation
+                            </button>    
+                                              
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-4 my-4">
-                        <button id="addMotor1Btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
-                            Add Motor 1 Rotation
-                        </button>
-                        <button id="addMotor2Btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
-                            Add Motor 2 Rotation
-                        </button>
-                    </div>
-
                     <button id="resetBtn" class="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                         Reset
                     </button>
                 </div>
                 
-                <!-- Instruction List -->
-                <div class="p-6 bg-gray-800 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Instruction List</h2>
-                    <ul id="instructionList" class="text-gray-200 list-inside">
-                        <!-- Instructions will be added here dynamically -->
-                    </ul>
-                </div>
-
                 <!-- Simulation Controls and Path Color -->
                 <div class="p-6 bg-gray-800 rounded-lg shadow-sm flex items-center justify-between">
                     <div>
@@ -182,7 +212,7 @@
                 </div>
             </div>
             <!-- Simulation Canvas and Output -->
-            <div class="flex-grow flex-1 w-full lg:w-[80%] flex flex-col justify-start items-start gap-4">
+            <div class="flex-grow flex-1 w-full lg:w-[80%] flex flex-col justify-start items-start gap-2">
                 <canvas id="robotCanvas" style="width: 100%; height: auto;"></canvas>
                 <div class="w-full flex justify-between items-center gap-4">
                     <button id="startSimulationBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md shadow-lg transition duration-300 transform hover:scale-105 w-[20%]">
@@ -198,22 +228,19 @@
                          <button id="createPathBtn" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                             Create Path
                         </button>
-                        <button id="saveBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
-                            Save
-                        </button>
-                        <button id="loadBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
-                            Load
-                        </button>
                         <!-- New Opacity Slider for Second Map -->
                         <div class="flex flex-col items-center">
                             <label for="map2Opacity" class="text-sm font-medium text-gray-200">Map Opacity</label>
                             <input type="range" id="map2Opacity" min="0" max="1" value="0.5" step="0.1" class="mt-1 w-24">
                         </div>
+                        <div class="flex flex-col items-center">
+                            <label for="playbackSpeed" class="text-sm font-medium text-gray-200">Playback Speed</label>
+                            <input type="number" id="playbackSpeed" value="1.0" step="0.1" class="w-[50%] text-right px-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                        </div>
                     </div>
                 </div>
                 <!-- Time Scrub Controls -->
-                <div class="w-full p-6 bg-gray-800 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Time Scrub</h2>
+                <div class="w-full p-6 bg-gray-800 rounded-lg shadow-sm">                    
                     <div class="flex items-center gap-4">
                         <span id="currentTimeDisplay" class="text-gray-200 font-bold w-12 text-right">0.0s</span>
                         <div class="flex items-center flex-grow">
@@ -223,10 +250,15 @@
                         </div>
                         <span id="totalTimeDisplay" class="text-gray-200 font-bold w-12">0.0s</span>
                     </div>
-                    <div class="flex items-center mt-4 gap-4">
-                        <label for="playbackSpeed" class="text-sm font-medium text-gray-200 whitespace-nowrap">Playback Speed</label>
-                        <input type="number" id="playbackSpeed" value="1.0" step="0.1" class="mt-1 w-[20%] text-right px-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
-                    </div>
+                    
+                </div>
+                
+                <!-- Instruction List -->
+                <div class="p-6 bg-gray-800 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Instruction List</h2>
+                    <ul id="instructionList" class="instruction-row">
+                        <!-- Instructions will be added here dynamically -->
+                    </ul>
                 </div>
                 
                 <!-- Python Function Name Input Fields -->
@@ -535,14 +567,6 @@
             ctx.lineTo(0, -h/2 + pivotY_px);
             ctx.stroke();
             
-            // Draw the grey pivot line (axle) on top
-            ctx.strokeStyle = '#6b7280';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(-w/2, 0);
-            ctx.lineTo(w/2, 0);
-            ctx.stroke();
-            
             // Draw the wheels on top, at y=0
             const wheelWidth = cmToPixels(0.8);
             const wheelHeight = cmToPixels(5.5);
@@ -550,6 +574,14 @@
             ctx.fillStyle = '#60a5fa';
             ctx.fillRect(-wheelOffset, -wheelHeight/2, wheelWidth, wheelHeight);
             ctx.fillRect(wheelOffset - wheelWidth, -wheelHeight/2, wheelWidth, wheelHeight);
+            
+            // Draw the grey pivot line (axle) on top
+            ctx.strokeStyle = '#6b7280';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-w/2, 0);
+            ctx.lineTo(w/2, 0);
+            ctx.stroke();
 
             ctx.restore();
         }
@@ -934,7 +966,6 @@ runloop.run(main())
             let currentX = parseFloat(startXInput.value);
             let currentY = parseFloat(startYInput.value);
             let currentAngleRad = parseFloat(startAngleInput.value) * Math.PI / 180;
-            const pivotY = parseFloat(pivotYInput.value);
             
             let elapsedTime = 0;
             let finalState = { x: currentX, y: currentY, angle: currentAngleRad, pathHistory: [{ x: currentX, y: currentY }] };
@@ -959,15 +990,17 @@ runloop.run(main())
                         const distMoved = (moveSpeed / 100) * timeInInstruction;
                         finalX = currentX + distMoved * Math.sin(currentAngleRad);
                         finalY = currentY + distMoved * Math.cos(currentAngleRad);
-                        finalState.pathHistory.push({x: finalX, y: finalY});
+                        
                         finalState.x = finalX;
                         finalState.y = finalY;
-                        finalState.angle = finalAngleRad;
+                        finalState.angle = currentAngleRad;
+                        finalState.pathHistory.push({x: finalX, y: finalY});
                         return finalState;
                     }
-                    finalX = currentX + instruction.distance * Math.sin(currentAngleRad);
-                    finalY = currentY + instruction.distance * Math.cos(currentAngleRad);
-                    finalState.pathHistory.push({x: finalX, y: finalY});
+                    currentX += instruction.distance * Math.sin(currentAngleRad);
+                    currentY += instruction.distance * Math.cos(currentAngleRad);
+                    finalState.pathHistory.push({x: currentX, y: currentY});
+
                 } else if (instruction.type === 'rotate') {
                     duration = Math.abs(instruction.angle) / (rotateSpeed / 10);
                     if (elapsedTime + duration >= time) {
@@ -975,20 +1008,17 @@ runloop.run(main())
                         const angleRotated = (rotateSpeed / 10) * Math.sign(instruction.angle) * timeInInstruction;
                         finalAngleRad = currentAngleRad + toRadians(angleRotated);
                         
-                        finalX = currentX;
-                        finalY = currentY;
+                        finalState.x = currentX;
+                        finalState.y = currentY;
                         finalState.angle = finalAngleRad;
                         return finalState;
                     }
-                    finalAngleRad = currentAngleRad + toRadians(instruction.angle);
-                    
-                    finalX = currentX;
-                    finalY = currentY;
+                    currentAngleRad += toRadians(instruction.angle);
+
                 } else if (instruction.type === 'followPath') {
                     let pathCurrentX = currentX;
                     let pathCurrentY = currentY;
                     let pathCurrentAngleRad = currentAngleRad;
-                    const originalElapsedTime = elapsedTime;
 
                     for (const point of instruction.points) {
                         const dx = point.x - pathCurrentX;
@@ -1034,9 +1064,9 @@ runloop.run(main())
                         pathCurrentX = point.x;
                         pathCurrentY = point.y;
                     }
-                    finalX = pathCurrentX;
-                    finalY = pathCurrentY;
-                    finalAngleRad = pathCurrentAngleRad;
+                    currentX = pathCurrentX;
+                    currentY = pathCurrentY;
+                    currentAngleRad = pathCurrentAngleRad;
                 } else if (instruction.type === 'motor1' || instruction.type === 'motor2') {
                     duration = 1;
                     if (elapsedTime + duration >= time) {
@@ -1044,9 +1074,6 @@ runloop.run(main())
                     }
                 }
                 elapsedTime += duration;
-                currentX = finalX;
-                currentY = finalY;
-                currentAngleRad = finalAngleRad;
             }
 
             finalState.x = currentX;
@@ -1096,30 +1123,47 @@ runloop.run(main())
             instructionList.innerHTML = '';
             instructions.forEach((instruction, index) => {
                 const listItem = document.createElement('li');
-                listItem.className = 'instruction-item';
+                listItem.className = `instruction-item w-48 flex-shrink-0`;
                 listItem.draggable = true;
                 listItem.dataset.index = index;
                 
-                let text = `Instruction ${index + 1}: `;
+                let text1 = '';
+                let text2 = '';
+                let bgColor = '';
+                
                 if (instruction.type === 'move') {
                     const speed = instruction.speed || 1000;
-                    text += `Move ${instruction.distance.toFixed(2)} cm @ ${speed.toFixed(0)}`;
+                    text1 = `${index + 1}: Move`;
+                    text2 = `${instruction.distance.toFixed(2)} cm @ ${speed.toFixed(0)}`;
+                    bgColor = 'bg-blue-600';
                 } else if (instruction.type === 'rotate') {
                     const speed = instruction.speed || 500;
-                    text += `Rotate ${instruction.angle.toFixed(2)} deg @ ${speed.toFixed(0)}`;
+                    text1 = `${index + 1}: Rotate`;
+                    text2 = `${instruction.angle.toFixed(2)} deg @ ${speed.toFixed(0)}`;
+                    bgColor = 'bg-orange-500';
                 } else if (instruction.type === 'followPath') {
-                    text += `Follow Path (${instruction.points.length} points)`;
+                    text1 = `${index + 1}: Follow Path`;
+                    text2 = `(${instruction.points.length} pts)`;
+                    bgColor = 'bg-purple-600';
                 } else if (instruction.type === 'motor1') {
                     const speed = instruction.speed || 500;
-                    text += `Motor 1 Rot: 90 deg @ ${speed.toFixed(0)}`;
+                    text1 = `${index + 1}: Motor 1 Rot`;
+                    text2 = `${instruction.angle.toFixed(0)} deg @ ${speed.toFixed(0)}`;
+                    bgColor = 'bg-gray-600';
                 } else if (instruction.type === 'motor2') {
                     const speed = instruction.speed || 500;
-                    text += `Motor 2 Rot: 90 deg @ ${speed.toFixed(0)}`;
+                    text1 = `${index + 1}: Motor 2 Rot`;
+                    text2 = `${instruction.angle.toFixed(0)} deg @ ${speed.toFixed(0)}`;
+                    bgColor = 'bg-gray-600';
                 }
                 
+                listItem.classList.add(bgColor);
                 listItem.innerHTML = `
-                    <span>${text}</span>
-                    <div class="instruction-controls">
+                    <div class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left">
+                        <div class="text-sm font-bold">${text1}</div>
+                        <div class="text-xs">${text2}</div>
+                    </div>
+                    <div class="instruction-controls flex-shrink-0 flex flex-col gap-1">
                         <button class="edit-btn" data-index="${index}">Edit</button>
                         <button class="delete-btn" data-index="${index}">Delete</button>
                     </div>
@@ -1160,28 +1204,31 @@ runloop.run(main())
         function handleDragOver(e) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
-            if (e.target.classList.contains('instruction-item')) {
-                e.target.style.borderTop = '2px solid #22c55e';
+            if (e.target.closest('.instruction-item')) {
+                e.target.closest('.instruction-item').style.borderTop = '2px solid #22c55e';
             }
         }
 
         function handleDragLeave(e) {
-            e.target.style.borderTop = '';
+            if (e.target.closest('.instruction-item')) {
+                 e.target.closest('.instruction-item').style.borderTop = '';
+            }
         }
 
         function handleDrop(e) {
             e.preventDefault();
-            e.target.style.borderTop = '';
-            if (dragSrcEl !== this) {
+            const dropTarget = e.target.closest('.instruction-item');
+            if (dragSrcEl !== dropTarget && dropTarget) {
                 const dragIndex = parseInt(dragSrcEl.dataset.index);
-                const dropIndex = parseInt(this.dataset.index);
+                const dropIndex = parseInt(dropTarget.dataset.index);
                 
                 const [removed] = instructions.splice(dragIndex, 1);
                 instructions.splice(dropIndex, 0, removed);
                 
                 renderInstructionList();
-                draw();
             }
+            dragSrcEl.style.borderTop = '';
+            e.target.style.borderTop = '';
         }
 
         function handleDragEnd(e) {
@@ -1199,19 +1246,19 @@ runloop.run(main())
             if (instruction.type === 'move') {
                 const speed = instruction.speed || 1000;
                 formHtml = `
-                    <form class="edit-form flex items-center gap-2" data-index="${index}">
-                        <input type="number" name="distance" value="${instruction.distance.toFixed(2)}" step="0.01">
-                        <input type="number" name="speed" value="${speed.toFixed(0)}" step="10">
-                        <button type="submit">Save</button>
+                    <form class="edit-form flex items-center gap-2 flex-col" data-index="${index}">
+                        <input type="number" name="distance" value="${instruction.distance.toFixed(2)}" step="0.01" class="text-center">
+                        <input type="number" name="speed" value="${speed.toFixed(0)}" step="10" class="text-center">
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-md shadow-md">Save</button>
                     </form>
                 `;
             } else if (instruction.type === 'rotate') {
                 const speed = instruction.speed || 500;
                 formHtml = `
-                    <form class="edit-form flex items-center gap-2" data-index="${index}">
-                        <input type="number" name="angle" value="${instruction.angle.toFixed(2)}" step="0.01">
-                        <input type="number" name="speed" value="${speed.toFixed(0)}" step="10">
-                        <button type="submit">Save</button>
+                    <form class="edit-form flex items-center gap-2 flex-col" data-index="${index}">
+                        <input type="number" name="angle" value="${instruction.angle.toFixed(2)}" step="0.01" class="text-center">
+                        <input type="number" name="speed" value="${speed.toFixed(0)}" step="10" class="text-center">
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-md shadow-md">Save</button>
                     </form>
                 `;
             } else if (instruction.type === 'followPath') {
