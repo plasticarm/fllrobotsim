@@ -12,7 +12,6 @@
         }
         canvas {
             border: 2px solid #1d1d1d;
-            border-radius: 0.5rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);            
             background-color: #f7f7f7;
             cursor: grab;
@@ -126,28 +125,44 @@
 
                 <!-- Robot Dimensions Input -->
                 <div class="p-6 bg-gray-800 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Robot Dimensions</h2>
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label for="robotWidth" class="block text-xs font-medium text-gray-200">Width (cm)</label>
-                            <input type="number" id="robotWidth" value="12.5" min="1" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
-                        </div>
-                        <div>
-                            <label for="robotHeight" class="block text-xs font-medium text-gray-200">Height (cm)</label>
-                            <input type="number" id="robotHeight" value="18" min="1" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
-                        </div>
+                    <div id="robot-dimensions-header" class="flex justify-between items-center cursor-pointer mb-4">
+                        <h2 class="text-xl font-semibold text-gray-200">Robot Dimensions</h2>
+                        <span id="collapse-icon" class="text-gray-200 text-xl">+</span>
                     </div>
-                    <div>
-                        <label for="pivotY" class="block text-xs font-medium text-gray-200">Pivot Y Offset (cm)</label>
-                        <input type="number" id="pivotY" value="0" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                    <div id="robot-dimensions-content" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="robotWidth" class="block text-xs font-medium text-gray-200">Width (cm)</label>
+                                <input type="number" id="robotWidth" value="12.5" min="1" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            </div>
+                            <div>
+                                <label for="robotHeight" class="block text-xs font-medium text-gray-200">Height (cm)</label>
+                                <input type="number" id="robotHeight" value="18" min="1" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="pivotY" class="block text-xs font-medium text-gray-200">Pivot Y Offset (cm)</label>
+                            <input type="number" id="pivotY" value="0" class="mt-1 text-right block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                        </div>
+                        
+                        <div class="border-t border-gray-700 pt-4 mt-4">
+                            <h3 class="text-lg font-semibold text-gray-200 mb-2">Arm Dimensions</h3>
+                            <div id="arm-controls-container" class="space-y-2">
+                                <!-- Dynamic arm controls will go here -->
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <button id="addArmBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 text-sm">+</button>
+                                <button id="removeArmBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 text-sm">-</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Command Input -->
                 <div class="p-6 bg-gray-800 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-200">Commands</h2>
+                    <h2 class="text-xl font-semibold text-center mb-4 text-gray-200">Commands</h2>
                     
-                    <div class="p-4 rounded-lg bg-blue-600 mb-4">  
+                    <div class="p-4 rounded-lg bg-blue-600 mb-4">                        
                         <button id="addMoveBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                             Add Move
                         </button>                      
@@ -164,7 +179,7 @@
                         
                     </div>
 
-                    <div class="p-4 rounded-lg bg-orange-500 mb-4"> 
+                    <div class="p-4 rounded-lg bg-orange-500 mb-4">                         
                         <button id="addRotateBtn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                             Add Rotate
                         </button>                       
@@ -346,6 +361,12 @@
         const currentTimeDisplay = document.getElementById('currentTimeDisplay');
         const totalTimeDisplay = document.getElementById('totalTimeDisplay');
         const playbackSpeedInput = document.getElementById('playbackSpeed');
+        const robotDimensionsHeader = document.getElementById('robot-dimensions-header');
+        const robotDimensionsContent = document.getElementById('robot-dimensions-content');
+        const collapseIcon = document.getElementById('collapse-icon');
+        const armControlsContainer = document.getElementById('arm-controls-container');
+        const addArmBtn = document.getElementById('addArmBtn');
+        const removeArmBtn = document.getElementById('removeArmBtn');
 
         // Image for the background
         const backgroundImage = new Image();
@@ -395,6 +416,14 @@
         let draggedPathPointIndex = -1;
         let hoveredPathPointIndex = -1;
         
+        // Arm state
+        let arms = [
+            { xOffset: -6.25, yOffset: 9, width: 1, height: 8, rotation: 0 }, // Left arm default
+            { xOffset: 6.25, yOffset: 9, width: 1, height: 8, rotation: 0 }  // Right arm default
+        ];
+        let isDraggingArm = false;
+        let draggedArmIndex = -1;
+
         // Global helper functions
         const toRadians = (deg) => deg * Math.PI / 180;
         const toDegrees = (rad) => rad * 180 / Math.PI;
@@ -567,21 +596,36 @@
             ctx.lineTo(0, -h/2 + pivotY_px);
             ctx.stroke();
             
-            // Draw the wheels on top, at y=0
+            // Draw the wheels first
             const wheelWidth = cmToPixels(0.8);
             const wheelHeight = cmToPixels(5.5);
-            const wheelOffset = w/2 + 2;
+            const wheelOffset = w / 2;
             ctx.fillStyle = '#60a5fa';
-            ctx.fillRect(-wheelOffset, -wheelHeight/2, wheelWidth, wheelHeight);
-            ctx.fillRect(wheelOffset - wheelWidth, -wheelHeight/2, wheelWidth, wheelHeight);
-            
-            // Draw the grey pivot line (axle) on top
+            ctx.fillRect(-wheelOffset - wheelWidth, -wheelHeight / 2, wheelWidth, wheelHeight);
+            ctx.fillRect(wheelOffset, -wheelHeight / 2, wheelWidth, wheelHeight);
+
+            // Draw the grey pivot line (axle) on top, not offset by pivotY
             ctx.strokeStyle = '#6b7280';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(-w/2, 0);
-            ctx.lineTo(w/2, 0);
+            ctx.moveTo(-w / 2, 0);
+            ctx.lineTo(w / 2, 0);
             ctx.stroke();
+
+            // Draw the arms with rotation
+            arms.forEach(arm => {
+                ctx.save();
+                ctx.translate(cmToPixels(arm.xOffset), cmToPixels(arm.yOffset));
+                ctx.rotate(toRadians(arm.rotation));
+                
+                const armW = cmToPixels(arm.width);
+                const armH = cmToPixels(arm.height);
+                
+                ctx.fillStyle = '#ef4444'; // Red color for arms
+                ctx.fillRect(-armW/2, -armH/2, armW, armH);
+                
+                ctx.restore();
+            });
 
             ctx.restore();
         }
@@ -1375,6 +1419,7 @@ runloop.run(main())
             calculateTotalTime();
             calculatePlannedPath();
             updateSimulationState(0);
+            updateArmControlsUI();
         }
 
         /**
@@ -1459,6 +1504,7 @@ runloop.run(main())
                 motor1FunctionName: motor1FunctionNameInput.value,
                 motor2FunctionName: motor2FunctionNameInput.value,
                 instructions: instructions,
+                arms: arms
             };
 
             const jsonData = JSON.stringify(missionData, null, 2);
@@ -1509,6 +1555,7 @@ runloop.run(main())
                     motor2FunctionNameInput.value = loadedData.motor2FunctionName || 'rotateRightArm';
                     
                     instructions = loadedData.instructions || [];
+                    arms = loadedData.arms || [];
                     
                     // Clear other tool points
                     measurePoints = [];
@@ -1517,6 +1564,7 @@ runloop.run(main())
                     isMeasuring = false;
                     
                     renderInstructionList();
+                    updateArmControlsUI();
                     draw();
                 } catch (err) {
                     console.error('Failed to parse JSON file:', err);
@@ -1589,6 +1637,39 @@ runloop.run(main())
             return -1;
         }
 
+        /**
+         * Checks if a point is within an arm's bounding box.
+         * @param {number} x - The x coordinate of the point.
+         * @param {number} y - The y coordinate of the point.
+         * @returns {number} The index of the arm, or -1 if no arm is found.
+         */
+        function isPointInArm(mouseX, mouseY) {
+            const robotCanvasPos = toCanvasCoords(robot.x, robot.y);
+            const tempCtx = document.createElement('canvas').getContext('2d');
+            
+            for (let i = 0; i < arms.length; i++) {
+                const arm = arms[i];
+                const armW = cmToPixels(arm.width);
+                const armH = cmToPixels(arm.height);
+                const armX = cmToPixels(arm.xOffset);
+                const armY = cmToPixels(arm.yOffset);
+                
+                tempCtx.save();
+                tempCtx.translate(robotCanvasPos.x, robotCanvasPos.y);
+                tempCtx.rotate(robot.angle);
+                tempCtx.translate(armX, armY);
+                tempCtx.rotate(toRadians(arm.rotation));
+                tempCtx.beginPath();
+                tempCtx.rect(-armW/2, -armH/2, armW, armH);
+                tempCtx.restore();
+                
+                if (tempCtx.isPointInPath(mouseX, mouseY)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
         // Event listeners for dragging the robot and waypoints
         canvas.addEventListener('mousedown', (e) => {
             const rect = canvas.getBoundingClientRect();
@@ -1619,13 +1700,19 @@ runloop.run(main())
                     draw();
                 }
             } else {
-                const isHoveringRobot = isPointInRobot(mouseX, mouseY);
-                const isHoveringMeasurePoint = isPointInMeasurePoint(mouseX, mouseY) !== -1;
-                const isHoveringPathPoint = isPointInPathPoint(mouseX, mouseY) !== -1;
-                if (isHoveringRobot || isHoveringMeasurePoint || isHoveringPathPoint) {
-                    canvas.style.cursor = 'grab';
+                const armIndex = isPointInArm(mouseX, mouseY);
+                if (armIndex !== -1) {
+                    isDraggingArm = true;
+                    draggedArmIndex = armIndex;
                 } else {
-                    canvas.style.cursor = 'pointer';
+                    const isHoveringRobot = isPointInRobot(mouseX, mouseY);
+                    const isHoveringMeasurePoint = isPointInMeasurePoint(mouseX, mouseY) !== -1;
+                    const isHoveringPathPoint = isPointInPathPoint(mouseX, mouseY) !== -1;
+                    if (isHoveringRobot || isHoveringMeasurePoint || isHoveringPathPoint) {
+                        canvas.style.cursor = 'grab';
+                    } else {
+                        canvas.style.cursor = 'pointer';
+                    }
                 }
             }
         });
@@ -1650,11 +1737,26 @@ runloop.run(main())
                 pathPoints[draggedPathPointIndex].x = newTableCoords.x;
                 pathPoints[draggedPathPointIndex].y = newTableCoords.y;
                 draw();
+            } else if (isDraggingArm) {
+                const robotCanvasPos = toCanvasCoords(robot.x, robot.y);
+                const dx = mouseX - robotCanvasPos.x;
+                const dy = mouseY - robotCanvasPos.y;
+
+                const rotatedDx = dx * Math.cos(-robot.angle) - dy * Math.sin(-robot.angle);
+                const rotatedDy = dx * Math.sin(-robot.angle) + dy * Math.cos(-robot.angle);
+
+                arms[draggedArmIndex].xOffset = (rotatedDx / cmToPixels(1)).toFixed(2);
+                arms[draggedArmIndex].yOffset = (rotatedDy / cmToPixels(1)).toFixed(2);
+                updateArmControlsUI();
+                draw();
             } else {
                 hoveredPathPointIndex = isPointInPathPoint(mouseX, mouseY);
                 const isHoveringRobot = isPointInRobot(mouseX, mouseY);
                 const isHoveringMeasurePoint = isPointInMeasurePoint(mouseX, mouseY) !== -1;
-                if (isHoveringRobot || isHoveringMeasurePoint || hoveredPathPointIndex !== -1) {
+                const isHoveringPathPoint = hoveredPathPointIndex !== -1;
+                const isHoveringArm = isPointInArm(mouseX, mouseY) !== -1;
+                
+                if (isHoveringRobot || isHoveringMeasurePoint || isHoveringPathPoint || isHoveringArm) {
                     canvas.style.cursor = 'grab';
                 } else {
                     canvas.style.cursor = 'pointer';
@@ -1671,6 +1773,8 @@ runloop.run(main())
             draggedMeasurePointIndex = -1;
             isDraggingPathPoint = false;
             draggedPathPointIndex = -1;
+            isDraggingArm = false;
+            draggedArmIndex = -1;
             canvas.style.cursor = 'grab';
         });
 
@@ -1679,6 +1783,68 @@ runloop.run(main())
                 if (isCreatingPath && hoveredPathPointIndex !== -1) {
                     pathPoints.splice(hoveredPathPointIndex, 1);
                     hoveredPathPointIndex = -1; // Reset hover
+                    draw();
+                }
+            }
+        });
+
+        // Event listeners for arm controls
+        robotDimensionsHeader.addEventListener('click', () => {
+            robotDimensionsContent.classList.toggle('hidden');
+            if (robotDimensionsContent.classList.contains('hidden')) {
+                collapseIcon.textContent = '+';
+            } else {
+                collapseIcon.textContent = '-';
+            }
+        });
+        
+        function updateArmControlsUI() {
+            armControlsContainer.innerHTML = '';
+            arms.forEach((arm, index) => {
+                const armControlGroup = document.createElement('div');
+                armControlGroup.classList.add('flex', 'items-center', 'gap-2', 'flex-wrap');
+                armControlGroup.innerHTML = `
+                    <label for="armLength${index}" class="text-xs font-medium text-gray-200">Arm ${index + 1}:</label>
+                    <div class="flex-grow flex gap-2 items-center">
+                        <label for="armLength${index}" class="text-xs text-gray-400">Length</label>
+                        <input type="number" id="armLength${index}" data-index="${index}" min="1" value="${arm.height}" class="mt-1 text-right block w-16 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                    </div>
+                    <div class="flex-grow flex gap-2 items-center">
+                        <label for="armRotation${index}" class="text-xs text-gray-400">Rot</label>
+                        <input type="number" id="armRotation${index}" data-index="${index}" value="${arm.rotation}" class="mt-1 text-right block w-16 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
+                    </div>
+                `;
+                armControlsContainer.appendChild(armControlGroup);
+            });
+            draw();
+        }
+
+        addArmBtn.addEventListener('click', () => {
+            arms.push({ xOffset: -6.25, yOffset: 9, width: 1, height: 8, rotation: 0 });
+            updateArmControlsUI();
+        });
+
+        removeArmBtn.addEventListener('click', () => {
+            if (arms.length > 0) {
+                arms.pop();
+                updateArmControlsUI();
+            }
+        });
+
+        armControlsContainer.addEventListener('input', (e) => {
+            if (e.target.id.startsWith('armLength')) {
+                const index = parseInt(e.target.dataset.index);
+                const newLength = parseFloat(e.target.value);
+                if (!isNaN(newLength) && newLength > 0) {
+                    arms[index].height = newLength;
+                    draw();
+                }
+            }
+            if (e.target.id.startsWith('armRotation')) {
+                const index = parseInt(e.target.dataset.index);
+                const newRotation = parseFloat(e.target.value);
+                if (!isNaN(newRotation)) {
+                    arms[index].rotation = newRotation;
                     draw();
                 }
             }
@@ -1845,6 +2011,7 @@ runloop.run(main())
             calculatePlannedPath();
             calculateTotalTime();
             updateSimulationState(0);
+            updateArmControlsUI();
         };
     </script>
 </body>
