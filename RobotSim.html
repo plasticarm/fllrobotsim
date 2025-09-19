@@ -83,7 +83,7 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
-    <div class="w-full bg-grey-800 p-8 rounded-lg shadow-lg">
+    <div class="w-full bg-gray-800 p-8 rounded-lg shadow-lg">
         <div class="flex flex-col lg:flex-row gap-2">
             <!-- Controls and Output -->
             <div class="flex-none w-full lg:w-[20%] flex flex-col gap-2">
@@ -249,6 +249,10 @@
                             <input type="range" id="map2Opacity" min="0" max="1" value="0.5" step="0.1" class="mt-1 w-24">
                         </div>
                         <div class="flex flex-col items-center">
+                            <label for="missionNamesToggle" class="text-sm font-medium text-gray-200">Mission Names</label>
+                            <input type="checkbox" id="missionNamesToggle" class="mt-1">
+                        </div>
+                        <div class="flex flex-col items-center">
                             <label for="playbackSpeed" class="text-sm font-medium text-gray-200">Playback Speed</label>
                             <input type="number" id="playbackSpeed" value="1.0" step="0.1" class="w-[50%] text-right px-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-gray-200">
                         </div>
@@ -355,6 +359,7 @@
         const loadBtn = document.getElementById('loadBtn');
         const fileInput = document.getElementById('fileInput');
         const map2OpacityInput = document.getElementById('map2Opacity');
+        const missionNamesToggle = document.getElementById('missionNamesToggle');
         const timeSlider = document.getElementById('timeSlider');
         const rewindBtn = document.getElementById('rewindBtn');
         const forwardBtn = document.getElementById('forwardBtn');
@@ -379,6 +384,13 @@
         backgroundImage2.crossOrigin = "anonymous";
         backgroundImage2.src = "https://raw.githubusercontent.com/plasticarm/fllrobotsim/main/MapImage.png";
         let isImage2Loaded = false;
+
+        // Third image for mission names
+        const backgroundImage3 = new Image();
+        backgroundImage3.crossOrigin = "anonymous";
+        backgroundImage3.src = "https://raw.githubusercontent.com/plasticarm/fllrobotsim/main/MapMissionNames.png";
+        let isImage3Loaded = false;
+        let isMissionNamesVisible = false;
 
         // Table and Canvas Dimensions
         const TABLE_WIDTH_MM = 2362;
@@ -565,11 +577,16 @@
                     ctx.drawImage(backgroundImage2, drawX, drawY, drawWidth, drawHeight);
                     ctx.restore();
                 }
+
+                // Draw third image for mission names
+                if (isImage3Loaded && isMissionNamesVisible) {
+                    ctx.drawImage(backgroundImage3, drawX, drawY, drawWidth, drawHeight);
+                }
             } else {
                 drawGrid();
             }
         }
-        
+
         /**
          * Draws the robot's arms.
          */
@@ -870,7 +887,6 @@
             let currentX = parseFloat(startXInput.value);
             let currentY = parseFloat(startYInput.value);
             let currentAngleRad = parseFloat(startAngleInput.value) * Math.PI / 180;
-            const pivotY = parseFloat(pivotYInput.value);
 
             plannedPathPoints.push({ x: currentX, y: currentY });
 
@@ -882,7 +898,6 @@
                     plannedPathPoints.push({ x: currentX, y: currentY });
                 } else if (instruction.type === 'rotate') {
                     const angle = instruction.angle;
-                    const oldAngleRad = currentAngleRad;
                     currentAngleRad += toRadians(angle);
                 } else if (instruction.type === 'followPath') {
                     instruction.points.forEach(point => {
@@ -1483,6 +1498,7 @@ runloop.run(main())
                 pathColor: pathColorInput.value,
                 robotColor: robotColorInput.value,
                 map2Opacity: parseFloat(map2OpacityInput.value),
+                isMissionNamesVisible: isMissionNamesVisible,
                 playbackSpeed: parseFloat(playbackSpeedInput.value),
                 moveFunctionName: moveFunctionNameInput.value,
                 rotateFunctionName: rotateFunctionNameInput.value,
@@ -1541,6 +1557,8 @@ runloop.run(main())
                     
                     instructions = loadedData.instructions || [];
                     arms = loadedData.arms || [];
+                    isMissionNamesVisible = loadedData.isMissionNamesVisible || false;
+                    missionNamesToggle.checked = isMissionNamesVisible;
                     
                     // Clear other tool points
                     measurePoints = [];
@@ -1738,7 +1756,6 @@ runloop.run(main())
                 hoveredPathPointIndex = isPointInPathPoint(mouseX, mouseY);
                 const isHoveringRobot = isPointInRobot(mouseX, mouseY);
                 const isHoveringMeasurePoint = isPointInMeasurePoint(mouseX, mouseY) !== -1;
-                const isHoveringPathPoint = isPointInPathPoint(mouseX, mouseY) !== -1;
                 if (isHoveringRobot || isHoveringMeasurePoint || hoveredPathPointIndex !== -1) {
                     canvas.style.cursor = 'grab';
                 } else {
@@ -1772,14 +1789,6 @@ runloop.run(main())
         });
 
         // Event listeners for arm controls
-        robotDimensionsHeader.addEventListener('click', () => {
-            robotDimensionsContent.classList.toggle('hidden');
-            if (robotDimensionsContent.classList.contains('hidden')) {
-                collapseIcon.textContent = '+';
-            } else {
-                collapseIcon.textContent = '-';
-            }
-        });
         
         function updateArmControlsUI() {
             armControlsContainer.innerHTML = '';
@@ -1801,22 +1810,9 @@ runloop.run(main())
             });
             draw();
         }
-
-        addArmBtn.addEventListener('click', () => {
-            const w = parseFloat(robotWidthInput.value);
-            const h = parseFloat(robotHeightInput.value);
-            arms.push({ xOffset: -w/2, yOffset: h/2, width: 1, height: 8, rotation: 0 });
-            updateArmControlsUI();
-        });
-
-        removeArmBtn.addEventListener('click', () => {
-            if (arms.length > 0) {
-                arms.pop();
-                updateArmControlsUI();
-            }
-        });
-
-        armControlsContainer.addEventListener('input', (e) => {
+        
+        // This is a dynamic event listener handler for the arm controls
+        document.addEventListener('input', (e) => {
             if (e.target.id.startsWith('armLength')) {
                 const index = parseInt(e.target.dataset.index);
                 const newLength = parseFloat(e.target.value);
@@ -1834,123 +1830,8 @@ runloop.run(main())
                 }
             }
         });
-        // Event listeners
-        addMoveBtn.addEventListener('click', handleAddMove);
-        addRotateBtn.addEventListener('click', handleAddRotate);
-        addMotor1Btn.addEventListener('click', handleAddMotor1);
-        addMotor2Btn.addEventListener('click', handleAddMotor2);
-        startSimulationBtn.addEventListener('click', handleStartSimulation);
-        stopSimulationBtn.addEventListener('click', handleStopSimulation);
-        resetBtn.addEventListener('click', handleReset);
-        copyCodeBtn.addEventListener('click', handleCopyCode);
-        downloadCodeBtn.addEventListener('click', handleDownloadCode);
-        saveBtn.addEventListener('click', handleSave);
-        loadBtn.addEventListener('click', handleLoad);
-        fileInput.addEventListener('change', handleFileSelect);
-        
-        measureBtn.addEventListener('click', () => {
-            isMeasuring = !isMeasuring;
-            if (isMeasuring) {
-                isCreatingPath = false; // Disable path creation
-                createPathBtn.classList.remove('bg-purple-700');
-                createPathBtn.classList.add('bg-purple-500');
-                measureBtn.classList.remove('bg-yellow-500');
-                measureBtn.classList.add('bg-yellow-700');
-                measurePoints = []; // Clear old points
-            } else {
-                measureBtn.classList.remove('bg-yellow-700');
-                measureBtn.classList.add('bg-yellow-500');
-            }
-            draw();
-        });
-
-        createPathBtn.addEventListener('click', () => {
-            if (isCreatingPath) {
-                // Finalize path
-                if (pathPoints.length > 0) {
-                    instructions.push({ type: 'followPath', points: pathPoints });
-                    renderInstructionList();
-                }
-                pathPoints = [];
-                isCreatingPath = false;
-                createPathBtn.classList.remove('bg-purple-700');
-                createPathBtn.classList.add('bg-purple-500');
-            } else {
-                // Start a new path
-                isCreatingPath = true;
-                isMeasuring = false; // Disable measuring tool
-                measureBtn.classList.remove('bg-yellow-700');
-                measureBtn.classList.add('bg-yellow-500');
-                createPathBtn.classList.remove('bg-purple-500');
-                createPathBtn.classList.add('bg-purple-700');
-                pathPoints = [];
-            }
-            draw();
-        });
-
-        timeSlider.addEventListener('input', (e) => {
-            const normalizedTime = parseFloat(e.target.value);
-            updateSimulationState(normalizedTime);
-        });
-        
-        rewindBtn.addEventListener('click', () => {
-            timeSlider.value = Math.max(0, parseFloat(timeSlider.value) - 0.01);
-            updateSimulationState(parseFloat(timeSlider.value));
-        });
-
-        forwardBtn.addEventListener('click', () => {
-            timeSlider.value = Math.min(1, parseFloat(timeSlider.value) + 0.01);
-            updateSimulationState(parseFloat(timeSlider.value));
-        });
-
-        playbackSpeedInput.addEventListener('input', (e) => {
-            playbackSpeed = parseFloat(e.target.value);
-            if (isNaN(playbackSpeed) || playbackSpeed <= 0) {
-                playbackSpeed = 1.0;
-            }
-        });
 
 
-        // Update robot position when user changes the input fields
-        startXInput.addEventListener('change', () => {
-            robot.x = parseFloat(startXInput.value);
-            draw();
-            calculatePlannedPath();
-            calculateTotalTime();
-            updateSimulationState(parseFloat(timeSlider.value));
-        });
-        startYInput.addEventListener('change', () => {
-            robot.y = parseFloat(startYInput.value);
-            draw();
-            calculatePlannedPath();
-            calculateTotalTime();
-            updateSimulationState(parseFloat(timeSlider.value));
-        });
-        startAngleInput.addEventListener('change', () => {
-            robot.angle = parseFloat(startAngleInput.value) * Math.PI / 180;
-            draw();
-            calculatePlannedPath();
-            calculateTotalTime();
-            updateSimulationState(parseFloat(timeSlider.value));
-        });
-        robotWidthInput.addEventListener('change', () => {
-            draw();
-            calculatePlannedPath();
-        });
-        robotHeightInput.addEventListener('change', () => {
-            draw();
-            calculatePlannedPath();
-        });
-        pivotYInput.addEventListener('change', () => {
-            const h = parseFloat(robotHeightInput.value);
-            const pivotY = parseFloat(pivotYInput.value);
-            if (Math.abs(pivotY) > h/2) {
-                pivotYInput.value = h/2 * Math.sign(pivotY);
-            }
-            draw();
-            calculatePlannedPath();
-        });
-        
         // Initial draw and state setup
         handleReset();
 
@@ -1978,15 +1859,11 @@ runloop.run(main())
             draw();
         };
         
-        map2OpacityInput.addEventListener('input', () => {
+        backgroundImage3.onload = () => {
+            isImage3Loaded = true;
             draw();
-        });
+        };
 
-        // Resize the canvas when the window size changes
-        window.addEventListener('resize', () => {
-            resizeCanvas();
-            draw();
-        });
 
         // Initial resize for the first load
         window.onload = () => {
@@ -1995,7 +1872,165 @@ runloop.run(main())
             calculatePlannedPath();
             calculateTotalTime();
             updateSimulationState(0);
+            updateArmControlsUI();
+            
+            // Event listeners
+            addMoveBtn.addEventListener('click', handleAddMove);
+            addRotateBtn.addEventListener('click', handleAddRotate);
+            addMotor1Btn.addEventListener('click', handleAddMotor1);
+            addMotor2Btn.addEventListener('click', handleAddMotor2);
+            startSimulationBtn.addEventListener('click', handleStartSimulation);
+            stopSimulationBtn.addEventListener('click', handleStopSimulation);
+            resetBtn.addEventListener('click', handleReset);
+            copyCodeBtn.addEventListener('click', handleCopyCode);
+            downloadCodeBtn.addEventListener('click', handleDownloadCode);
+            saveBtn.addEventListener('click', handleSave);
+            loadBtn.addEventListener('click', handleLoad);
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            measureBtn.addEventListener('click', () => {
+                isMeasuring = !isMeasuring;
+                if (isMeasuring) {
+                    isCreatingPath = false; // Disable path creation
+                    createPathBtn.classList.remove('bg-purple-700');
+                    createPathBtn.classList.add('bg-purple-500');
+                    measureBtn.classList.remove('bg-yellow-500');
+                    measureBtn.classList.add('bg-yellow-700');
+                    measurePoints = []; // Clear old points
+                } else {
+                    measureBtn.classList.remove('bg-yellow-700');
+                    measureBtn.classList.add('bg-yellow-500');
+                }
+                draw();
+            });
+
+            createPathBtn.addEventListener('click', () => {
+                if (isCreatingPath) {
+                    // Finalize path
+                    if (pathPoints.length > 0) {
+                        instructions.push({ type: 'followPath', points: pathPoints });
+                        renderInstructionList();
+                    }
+                    pathPoints = [];
+                    isCreatingPath = false;
+                    createPathBtn.classList.remove('bg-purple-700');
+                    createPathBtn.classList.add('bg-purple-500');
+                } else {
+                    // Start a new path
+                    isCreatingPath = true;
+                    isMeasuring = false; // Disable measuring tool
+                    measureBtn.classList.remove('bg-yellow-700');
+                    measureBtn.classList.add('bg-yellow-500');
+                    createPathBtn.classList.remove('bg-purple-500');
+                    createPathBtn.classList.add('bg-purple-700');
+                    pathPoints = [];
+                }
+                draw();
+            });
+
+            timeSlider.addEventListener('input', (e) => {
+                const normalizedTime = parseFloat(e.target.value);
+                updateSimulationState(normalizedTime);
+            });
+            
+            rewindBtn.addEventListener('click', () => {
+                timeSlider.value = Math.max(0, parseFloat(timeSlider.value) - 0.01);
+                updateSimulationState(parseFloat(timeSlider.value));
+            });
+
+            forwardBtn.addEventListener('click', () => {
+                timeSlider.value = Math.min(1, parseFloat(timeSlider.value) + 0.01);
+                updateSimulationState(parseFloat(timeSlider.value));
+            });
+
+            playbackSpeedInput.addEventListener('input', (e) => {
+                playbackSpeed = parseFloat(e.target.value);
+                if (isNaN(playbackSpeed) || playbackSpeed <= 0) {
+                    playbackSpeed = 1.0;
+                }
+            });
+
+
+            // Update robot position when user changes the input fields
+            startXInput.addEventListener('change', () => {
+                robot.x = parseFloat(startXInput.value);
+                draw();
+                calculatePlannedPath();
+                calculateTotalTime();
+                updateSimulationState(parseFloat(timeSlider.value));
+            });
+            startYInput.addEventListener('change', () => {
+                robot.y = parseFloat(startYInput.value);
+                draw();
+                calculatePlannedPath();
+                calculateTotalTime();
+                updateSimulationState(parseFloat(timeSlider.value));
+            });
+            startAngleInput.addEventListener('change', () => {
+                robot.angle = parseFloat(startAngleInput.value) * Math.PI / 180;
+                draw();
+                calculatePlannedPath();
+                calculateTotalTime();
+                updateSimulationState(parseFloat(timeSlider.value));
+            });
+            robotWidthInput.addEventListener('change', () => {
+                draw();
+                calculatePlannedPath();
+            });
+            robotHeightInput.addEventListener('change', () => {
+                draw();
+                calculatePlannedPath();
+            });
+            pivotYInput.addEventListener('change', () => {
+                const h = parseFloat(robotHeightInput.value);
+                const pivotY = parseFloat(pivotYInput.value);
+                if (Math.abs(pivotY) > h/2) {
+                    pivotYInput.value = h/2 * Math.sign(pivotY);
+                }
+                draw();
+                calculatePlannedPath();
+            });
+            
+            robotDimensionsHeader.addEventListener('click', () => {
+                robotDimensionsContent.classList.toggle('hidden');
+                if (robotDimensionsContent.classList.contains('hidden')) {
+                    collapseIcon.textContent = '+';
+                } else {
+                    collapseIcon.textContent = '-';
+                }
+            });
+            
+            map2OpacityInput.addEventListener('input', () => {
+                draw();
+            });
+            
+            missionNamesToggle.addEventListener('change', (e) => {
+                isMissionNamesVisible = e.target.checked;
+                draw();
+            });
+            
+            addArmBtn.addEventListener('click', () => {
+                const w = parseFloat(robotWidthInput.value);
+                const h = parseFloat(robotHeightInput.value);
+                arms.push({ xOffset: -w/2, yOffset: h/2, width: 1, height: 8, rotation: 0 });
+                updateArmControlsUI();
+            });
+
+            removeArmBtn.addEventListener('click', () => {
+                if (arms.length > 0) {
+                    arms.pop();
+                    updateArmControlsUI();
+                }
+            });
+
         };
+        
+        // Resize the canvas when the window size changes
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            draw();
+        });
+        
     </script>
 </body>
 </html>
