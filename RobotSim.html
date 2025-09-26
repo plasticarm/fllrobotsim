@@ -8,7 +8,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #7E7E7E;
+            background-color: #D1D5DB;
         }
         canvas {
             border: 2px solid #1d1d1d;
@@ -78,6 +78,9 @@
             flex-wrap: wrap;
             gap: 8px;
             margin-top: 1rem;
+        }
+        .highlighted-instruction {
+            border: 2px solid white;
         }
     </style>
 </head>
@@ -407,6 +410,10 @@
         let robotStateHistory = [];
         let totalMissionTime = 0;
         let playbackSpeed = 1.0;
+        let currentCommandState = {
+            distance: 0,
+            angle: 0,
+        };
 
         // Instructions
         let instructions = [];
@@ -435,6 +442,9 @@
         ];
         let isDraggingArm = false;
         let draggedArmIndex = -1;
+        
+        let currentInstructionIndex = -1;
+
 
         // Global helper functions
         const toRadians = (deg) => deg * Math.PI / 180;
@@ -578,9 +588,11 @@
                     ctx.restore();
                 }
 
-                // Draw third image for mission names
+                // Draw third image for mission names in the bottom-right corner
                 if (isImage3Loaded && isMissionNamesVisible) {
+                    ctx.save();
                     ctx.drawImage(backgroundImage3, drawX, drawY, drawWidth, drawHeight);
+                    ctx.restore();
                 }
             } else {
                 drawGrid();
@@ -637,14 +649,6 @@
             ctx.lineTo(0, -h/2 + pivotY_px);
             ctx.stroke();
             
-            // Draw the grey pivot line (axle) on top
-            ctx.strokeStyle = '#6b7280';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(-w/2, 0);
-            ctx.lineTo(w/2, 0);
-            ctx.stroke();
-
             // Draw the wheels on top, at y=0
             const wheelWidth = cmToPixels(1);
             const wheelHeight = cmToPixels(5.5);
@@ -652,6 +656,14 @@
             ctx.fillStyle = '#60a5fa'; // Light blue
             ctx.fillRect(-wheelOffset - wheelWidth / 2, -wheelHeight / 2, wheelWidth, wheelHeight);
             ctx.fillRect(wheelOffset - wheelWidth / 2, -wheelHeight / 2, wheelWidth, wheelHeight);
+
+            // Draw the grey pivot line (axle) on top
+            ctx.strokeStyle = '#6b7280';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-w/2, 0);
+            ctx.lineTo(w/2, 0);
+            ctx.stroke();
 
             // Draw arms on top of the robot's body
             drawArms();
@@ -810,6 +822,48 @@
         }
 
         /**
+         * Draws the live distance and angle readouts on the canvas.
+         */
+        function drawLiveReadouts() {
+            if (!isImageLoaded) return;
+
+            const imgWidth = TABLE_WIDTH_MM;
+            const imgHeight = TABLE_HEIGHT_MM;
+            let drawWidth, drawHeight, drawX, drawY;
+
+            // Scale to fit while maintaining aspect ratio
+            let scaleFactor = Math.min(canvas.width / imgWidth, canvas.height / imgHeight);
+            drawWidth = imgWidth * scaleFactor;
+            drawHeight = imgHeight * scaleFactor;
+
+            // Center the image
+            drawX = (canvas.width - drawWidth) / 2;
+            drawY = (canvas.height - drawHeight) / 2;
+            
+            const boxWidth = drawWidth * 0.06;
+            const boxHeight = drawHeight * 0.20;
+            const padding = 10;
+            const boxX = drawX + drawWidth - boxWidth - padding;
+            const boxY = drawY + drawHeight - boxHeight - padding;
+
+            // Draw a semi-transparent background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+            // Draw the text readouts
+            ctx.fillStyle = 'white';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            const centerX = boxX + boxWidth / 2;
+
+            ctx.fillText('Distance', centerX, boxY + 20);
+            ctx.fillText(`${currentCommandState.distance.toFixed(1)} cm`, centerX, boxY + 40);
+
+            ctx.fillText('Angle', centerX, boxY + 80);
+            ctx.fillText(`${currentCommandState.angle.toFixed(1)}°`, centerX, boxY + 100);
+        }
+        
+        /**
          * Main drawing function.
          */
         function draw() {
@@ -819,6 +873,7 @@
             drawMeasurePoints();
             drawPathPoints();
             drawRobot();
+            drawLiveReadouts();
         }
 
         /**
@@ -1032,6 +1087,7 @@ runloop.run(main())
         
         /**
          * Calculates the robot's state (position, angle) at a given time.
+         * Now also returns current command progress.
          */
         function getRobotStateAtTime(time) {
             let currentX = parseFloat(startXInput.value);
@@ -1039,79 +1095,124 @@ runloop.run(main())
             let currentAngleRad = parseFloat(startAngleInput.value) * Math.PI / 180;
             
             let elapsedTime = 0;
-            let pathHistory = [{ x: currentX, y: currentY }];
+            let finalState = { 
+                x: currentX, 
+                y: currentY, 
+                angle: currentAngleRad, 
+                pathHistory: [{ x: currentX, y: currentY }],
+                currentDistance: 0,
+                currentAngle: 0,
+                currentInstructionIndex: -1
+            };
 
             if (time <= 0) {
-                return { x: currentX, y: currentY, angle: currentAngleRad, pathHistory: pathHistory };
+                return finalState;
             }
 
-            for (const instruction of instructions) {
+            for (let i = 0; i < instructions.length; i++) {
+                const instruction = instructions[i];
                 let duration = 0;
-                const stateAtStartOfInstruction = { x: currentX, y: currentY, angle: currentAngleRad };
+                
+                const moveSpeed = instruction.speed || 1000;
+                const rotateSpeed = instruction.speed || 500;
+                
+                let finalX = currentX;
+                let finalY = currentY;
+                let finalAngleRad = currentAngleRad;
 
                 if (instruction.type === 'move') {
-                    duration = Math.abs(instruction.distance) / (instruction.speed / 100);
+                    duration = Math.abs(instruction.distance) / (moveSpeed / 100);
                     if (elapsedTime + duration >= time) {
                         const timeInInstruction = time - elapsedTime;
-                        const distMoved = (instruction.speed / 100) * timeInInstruction * Math.sign(instruction.distance);
-                        let interpolatedX = stateAtStartOfInstruction.x + distMoved * Math.sin(stateAtStartOfInstruction.angle);
-                        let interpolatedY = stateAtStartOfInstruction.y + distMoved * Math.cos(stateAtStartOfInstruction.angle);
-                        pathHistory.push({x: interpolatedX, y: interpolatedY});
-                        return { x: interpolatedX, y: interpolatedY, angle: stateAtStartOfInstruction.angle, pathHistory: pathHistory };
+                        const distMoved = (moveSpeed / 100) * timeInInstruction * Math.sign(instruction.distance);
+                        finalX = currentX + distMoved * Math.sin(currentAngleRad);
+                        finalY = currentY + distMoved * Math.cos(currentAngleRad);
+                        
+                        finalState.x = finalX;
+                        finalState.y = finalY;
+                        finalState.angle = currentAngleRad;
+                        finalState.currentDistance = distMoved;
+                        finalState.currentAngle = 0; // Not rotating
+                        finalState.pathHistory.push({x: finalX, y: finalY});
+                        finalState.currentInstructionIndex = i;
+                        return finalState;
                     }
-                    currentX += instruction.distance * Math.sin(stateAtStartOfInstruction.angle);
-                    currentY += instruction.distance * Math.cos(stateAtStartOfInstruction.angle);
-                    pathHistory.push({x: currentX, y: currentY});
+                    currentX += instruction.distance * Math.sin(currentAngleRad);
+                    currentY += instruction.distance * Math.cos(currentAngleRad);
+                    finalState.pathHistory.push({x: currentX, y: currentY});
+
                 } else if (instruction.type === 'rotate') {
-                    duration = Math.abs(instruction.angle) / (instruction.speed / 10);
+                    duration = Math.abs(instruction.angle) / (rotateSpeed / 10);
                     if (elapsedTime + duration >= time) {
                         const timeInInstruction = time - elapsedTime;
-                        const angleRotated = (instruction.speed / 10) * Math.sign(instruction.angle) * timeInInstruction;
-                        let interpolatedAngle = stateAtStartOfInstruction.angle + toRadians(angleRotated);
-                        return { x: stateAtStartOfInstruction.x, y: stateAtStartOfInstruction.y, angle: interpolatedAngle, pathHistory: pathHistory };
+                        const angleRotated = (rotateSpeed / 10) * Math.sign(instruction.angle) * timeInInstruction;
+                        finalAngleRad = currentAngleRad + toRadians(angleRotated);
+                        
+                        finalState.x = currentX;
+                        finalState.y = currentY;
+                        finalState.angle = finalAngleRad;
+                        finalState.currentDistance = 0; // Not moving
+                        finalState.currentAngle = angleRotated;
+                        finalState.currentInstructionIndex = i;
+                        return finalState;
                     }
                     currentAngleRad += toRadians(instruction.angle);
+
                 } else if (instruction.type === 'followPath') {
                     let pathCurrentX = currentX;
                     let pathCurrentY = currentY;
                     let pathCurrentAngleRad = currentAngleRad;
-                    
+                    let pathElapsedTime = 0;
+
                     for (const point of instruction.points) {
                         const dx = point.x - pathCurrentX;
                         const dy = point.y - pathCurrentY;
                         const distance = Math.sqrt(dx * dx + dy * dy);
                         const targetAngleRad = Math.atan2(dx, dy);
                         let angleDiffRad = targetAngleRad - pathCurrentAngleRad;
-                        
+
                         while(angleDiffRad > Math.PI) angleDiffRad -= 2 * Math.PI;
                         while(angleDiffRad < -Math.PI) angleDiffRad += 2 * Math.PI;
                         
                         const rotationDuration = Math.abs(toDegrees(angleDiffRad)) / (1000 / 10);
                         const moveDuration = distance / (1000 / 100);
 
-                        if (elapsedTime + rotationDuration >= time) {
-                            const timeInInstruction = time - elapsedTime;
+                        if (elapsedTime + pathElapsedTime + rotationDuration >= time) {
+                            const timeInInstruction = time - (elapsedTime + pathElapsedTime);
                             const angleRotated = (1000 / 10) * Math.sign(angleDiffRad) * timeInInstruction;
-                            let interpolatedAngle = pathCurrentAngleRad + toRadians(angleRotated);
-                            return { x: pathCurrentX, y: pathCurrentY, angle: interpolatedAngle, pathHistory: pathHistory };
+                            finalAngleRad = pathCurrentAngleRad + toRadians(angleRotated);
+                            
+                            finalState.x = pathCurrentX; 
+                            finalState.y = pathCurrentY;
+                            finalState.angle = finalAngleRad;
+                            finalState.currentDistance = 0;
+                            finalState.currentAngle = angleRotated;
+                            finalState.currentInstructionIndex = i;
+                            return finalState;
                         }
                         
-                        elapsedTime += rotationDuration;
+                        pathElapsedTime += rotationDuration;
                         pathCurrentAngleRad += angleDiffRad;
                         
-                        if (elapsedTime + moveDuration >= time) {
-                            const timeInInstruction = time - elapsedTime;
+                        if (elapsedTime + pathElapsedTime + moveDuration >= time) {
+                            const timeInInstruction = time - (elapsedTime + pathElapsedTime);
                             const distMoved = (1000 / 100) * timeInInstruction;
-                            let interpolatedX = pathCurrentX + distMoved * Math.sin(pathCurrentAngleRad);
-                            let interpolatedY = pathCurrentY + distMoved * Math.cos(pathCurrentAngleRad);
-                            pathHistory.push({x: interpolatedX, y: interpolatedY});
-                            return { x: interpolatedX, y: interpolatedY, angle: pathCurrentAngleRad, pathHistory: pathHistory };
+                            finalX = pathCurrentX + distMoved * Math.sin(pathCurrentAngleRad);
+                            finalY = pathCurrentY + distMoved * Math.cos(pathCurrentAngleRad);
+                            finalState.pathHistory.push({x: finalX, y: finalY});
+                            finalState.x = finalX;
+                            finalState.y = finalY;
+                            finalState.angle = pathCurrentAngleRad;
+                            finalState.currentDistance = distMoved;
+                            finalState.currentAngle = 0;
+                            finalState.currentInstructionIndex = i;
+                            return finalState;
                         }
                         
-                        elapsedTime += moveDuration;
+                        pathElapsedTime += moveDuration;
+                        finalState.pathHistory.push({x: point.x, y: point.y});
                         pathCurrentX = point.x;
                         pathCurrentY = point.y;
-                        pathHistory.push({x: pathCurrentX, y: pathCurrentY});
                     }
                     currentX = pathCurrentX;
                     currentY = pathCurrentY;
@@ -1119,12 +1220,24 @@ runloop.run(main())
                 } else if (instruction.type === 'motor1' || instruction.type === 'motor2') {
                     duration = 1;
                     if (elapsedTime + duration >= time) {
-                        return { x: currentX, y: currentY, angle: currentAngleRad, pathHistory: pathHistory };
+                        finalState.currentDistance = 0;
+                        finalState.currentAngle = 0;
+                        finalState.currentInstructionIndex = i;
+                        finalState.x = currentX;
+                        finalState.y = currentY;
+                        finalState.angle = currentAngleRad;
+                        return finalState;
                     }
                 }
                 elapsedTime += duration;
             }
-            return { x: currentX, y: currentY, angle: currentAngleRad, pathHistory: pathHistory };
+
+            finalState.x = currentX;
+            finalState.y = currentY;
+            finalState.angle = currentAngleRad;
+            finalState.currentDistance = 0;
+            finalState.currentAngle = 0;
+            return finalState;
         }
 
         let animationFrameId = null;
@@ -1152,12 +1265,23 @@ runloop.run(main())
         function updateSimulationState(normalizedTime) {
             const time = normalizedTime * totalMissionTime;
             const state = getRobotStateAtTime(time);
+            
             robot.x = state.x;
             robot.y = state.y;
             robot.angle = state.angle;
             robotStateHistory = state.pathHistory;
+            currentCommandState.distance = state.currentDistance;
+            currentCommandState.angle = state.currentAngle;
 
             currentTimeDisplay.textContent = `${time.toFixed(1)}s`;
+
+            // Handle instruction highlighting
+            const allInstructions = document.querySelectorAll('.instruction-item');
+            allInstructions.forEach(item => item.classList.remove('highlighted-instruction'));
+            if (state.currentInstructionIndex !== -1 && allInstructions.length > state.currentInstructionIndex) {
+                allInstructions[state.currentInstructionIndex].classList.add('highlighted-instruction');
+            }
+
             draw();
         }
 
@@ -1403,7 +1527,7 @@ runloop.run(main())
                 speed: 5
             };
             isSimulating = false;
-            currentInstructionIndex = 0;
+            currentInstructionIndex = -1;
             startSimulationBtn.textContent = 'Start Simulation';
             instructionList.innerHTML = '';
             codeOutput.textContent = 'Your generated code will appear here.';
