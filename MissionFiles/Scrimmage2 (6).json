@@ -1,0 +1,268 @@
+{
+  "missionName": "Scrimmage2",
+  "startX": 75.92,
+  "startY": -44.72,
+  "startAngle": 0,
+  "robotWidth": 12.5,
+  "robotHeight": 18,
+  "pivotY": 3,
+  "pathColor": "#22c55e",
+  "robotColor": "#3b82f6",
+  "map2Opacity": 0,
+  "isMissionNamesVisible": false,
+  "playbackSpeed": 8,
+  "moveFunctionName": "drive",
+  "rotateFunctionName": "rotateDegrees",
+  "motor1FunctionName": "rotateLeftArm",
+  "motor2FunctionName": "rotateRightArm",
+  "instructions": [
+    {
+      "type": "move",
+      "distance": 45,
+      "speed": 1000
+    },
+    {
+      "type": "motor2",
+      "angle": 90,
+      "speed": 500
+    },
+    {
+      "type": "motor2",
+      "angle": 90,
+      "speed": 500
+    },
+    {
+      "type": "motor2",
+      "angle": 90,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 19,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": 20,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 3,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": -30,
+      "speed": 500
+    },
+    {
+      "type": "rotate",
+      "angle": -20,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 5,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": -60,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 10,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": 90,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 2,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": -15,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": -2,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": -75,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 48,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": -90,
+      "speed": 500
+    },
+    {
+      "type": "motor1",
+      "angle": 90,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": -15,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": -45,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 10,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": -45,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 8,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": 45,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 21,
+      "speed": 1000
+    },
+    {
+      "type": "move",
+      "distance": -10,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": -45,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 10,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": 45,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 26,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": 90,
+      "speed": 500
+    },
+    {
+      "type": "motor2",
+      "angle": 90,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 14,
+      "speed": 1000
+    },
+    {
+      "type": "motor2",
+      "angle": 90,
+      "speed": 500
+    },
+    {
+      "type": "motor2",
+      "angle": 90,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 39,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": 45,
+      "speed": 500
+    },
+    {
+      "type": "rotate",
+      "angle": 90,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 10,
+      "speed": 1000
+    },
+    {
+      "type": "motor1",
+      "angle": 90,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": -10,
+      "speed": 1000
+    },
+    {
+      "type": "rotate",
+      "angle": 100,
+      "speed": 500
+    },
+    {
+      "type": "move",
+      "distance": 50,
+      "speed": 1000
+    }
+  ],
+  "arms": [
+    {
+      "xOffset": "-8.08",
+      "yOffset": "-6.30",
+      "width": 1,
+      "height": 12,
+      "rotation": 0
+    },
+    {
+      "xOffset": "8.81",
+      "yOffset": "-5.92",
+      "width": 1,
+      "height": 12,
+      "rotation": 0
+    },
+    {
+      "xOffset": "0.17",
+      "yOffset": "-11.13",
+      "width": 1,
+      "height": 12,
+      "rotation": 0
+    }
+  ]
+}
